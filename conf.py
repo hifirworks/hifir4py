@@ -19,12 +19,7 @@ def is_debug():
 
 _hilucsi4py_debug = is_debug()
 
-# configure include paths
-_hilucsi_inc_path = os.environ.get("HILUCSI_INCLUDE_PATH", "")
-if not _hilucsi_inc_path:
-    incs = ["."]
-elif _hilucsi_inc_path != os.getcwd() or _hilucsi_inc_path != ".":
-    incs = [".", _hilucsi_inc_path]
+incs = [".", os.path.join("hilucsi4py", "hilucsi", "src")]
 
 # configure libraries
 _lapack_lib = os.environ.get("HILUCSI_LAPACK_LIB", "-llapack")
