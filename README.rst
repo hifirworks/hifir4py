@@ -1,6 +1,9 @@
 Python3 Interface for HILUCSI
 =============================
 
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/psf/black
+
 Welcome to the Python3 interface of HILUCSI package--- *hilucsi4py*. The Python
 interface is implemented with Cython, and the Cython interface is also
 available to use.
@@ -16,22 +19,15 @@ as its built-in KSP's preconditioners.
 Installation
 -------------
 
-Notice that since HILUCSI is template-based package, you need to specify
-the include path (path to ``HILUCSI.hpp``) as environment variable (this is
-only needed if the header files cannot be found in standard include path or
-current working directory.) In addition, you need to configure linking against
-LAPACK by setting the environment variable ``HILUCSI_LAPACK_LIB``, and the
-default is ``-llapack``. If you have a specific library path to LAPACK, you
-then need to set the environment variable ``HILUCSI_LAPACK_LIB_PATH``.
+You need to configure linking against LAPACK by setting the environment
+variable ``HILUCSI_LAPACK_LIB``, and the default is ``-llapack``. If you
+have a specific library path to LAPACK, you then need to set the environment
+variable ``HILUCSI_LAPACK_LIB_PATH``.
 
 To sum up, the following environment variables can be configured
 
-1. ``HILUCSI_INCLUDE_PATH``, default is empty
-2. ``HILUCSI_LAPACK_LIB``, default is ``-llapack``
-3. ``HILUCSI_LAPACK_LIB_PATH``, default is empty
-
-It's worth noting that the C++ interface of HILUCSI is needed if you plan to
-use the Cython interface of *hilucsi4py*.
+1. ``HILUCSI_LAPACK_LIB``, default is ``-llapack``
+2. ``HILUCSI_LAPACK_LIB_PATH``, default is empty
 
 The default installation
 ````````````````````````
@@ -42,18 +38,6 @@ library path or under ``LIBRARY_PATH``.
 
 .. code:: console
 
-    pip3 install . --user
-
-
-Installation with customized HILUCSI installation
-`````````````````````````````````````````````````
-
-The following command let Python search different path for ``HILUCSI.hpp``
-during compilation.
-
-.. code:: console
-
-    export HILUCSI_INCLUDE_PATH=$HOME/.local/include
     pip3 install . --user
 
 Installation with customized third-party libraries
