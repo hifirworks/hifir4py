@@ -19,6 +19,11 @@ as its built-in KSP's preconditioners.
 Installation
 -------------
 
+.. note::
+    The installation is for internal. The C++ source will not be distributed
+    with the Python module. Be aware that the LAPACK is dynamically linked
+    against with!
+
 You need to configure linking against LAPACK by setting the environment
 variable ``HILUCSI_LAPACK_LIB``, and the default is ``-llapack``. If you
 have a specific library path to LAPACK, you then need to set the environment

@@ -19,7 +19,7 @@ def is_debug():
 
 _hilucsi4py_debug = is_debug()
 
-incs = [".", os.path.join("hilucsi4py", "hilucsi", "src")]
+incs = [".", os.path.join("hilucsi", "src")]
 
 # configure libraries
 _lapack_lib = os.environ.get("HILUCSI_LAPACK_LIB", "-llapack")
