@@ -6,6 +6,7 @@ include conf.py
 graft hilucsi4py
 graft tests
 graft docs
+graft examples
 global-exclude __pycache__
 global-exclude *.so
 global-exclude *.py[co]
