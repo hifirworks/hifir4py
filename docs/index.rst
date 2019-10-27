@@ -6,6 +6,7 @@
     :caption: Contents:
 
     README
+    eg
     api
 
 Indices and tables
