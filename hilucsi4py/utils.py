@@ -28,10 +28,14 @@ functions are
 Notice that we use ``int`` as index type and ``double`` as floating number type,
 thus the corresponding numpy dtypes are ``intc`` and ``float64``.
 
-.. moduleauthor:: Qiao Chen, <qiao.chen@stonybrook.edu>
+.. module:: hilucsi4py.utils
+    :noindex:
+.. moduleauthor:: Qiao Chen <qiao.chen@stonybrook.edu>
 """
 
 import numpy as np
+
+__all__ = ["convert_to_crs", "convert_to_crs_and_b"]
 
 
 def _convert_to_crs(*args, shape=None):
@@ -99,18 +103,23 @@ def convert_to_crs(*args, shape=None):
 
     Parameters
     ----------
-    *args : input matrix
+    *args : positional arguments
         either three array of CRS or "scipy sparse matrix"-like
-    shape : ``None`` or tuple
+    shape : tuple, optional
         if input is three array, then this must be given
 
     Returns
     -------
-    tuple of ``rowptr``, ``colind``, and ``vals`` with acceptable data types.
+    rowptr : np.ndarray
+        compressed row starting position array
+    colind : np.ndarray
+        Column index array
+    vals : np.ndarray
+        Data array
 
     See Also
     --------
-    :func:`convert_to_crs_and_b`
+    convert_to_crs_and_b
     """
     rowptr, colind, vals, n = _convert_to_crs(*args, shape=shape)
     rowptr = _as_index_array(rowptr)
