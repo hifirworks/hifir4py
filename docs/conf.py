@@ -53,7 +53,9 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
-    "numpydoc",
+    # "numpydoc",
+    "IPython.sphinxext.ipython_console_highlighting",
+    "IPython.sphinxext.ipython_directive",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -89,6 +91,7 @@ pygments_style = "sphinx"
 # a list of builtin themes.
 #
 html_theme = "sphinx_rtd_theme"
+# html_theme = "nature"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -114,7 +117,7 @@ html_static_path = ["_static"]
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "PyCpldoc"
+# htmlhelp_basename = "PyCpldoc"
 
 # -- Options for LaTeX output ------------------------------------------------
 
@@ -170,5 +173,7 @@ texinfo_documents = [
 
 # -- Extension configuration -------------------------------------------------
 todo_include_todos = True
-numpydoc_show_class_members = False
+# numpydoc_show_class_members = False
 add_module_names = False  # remove module names. i.e. module.foobar
+napoleon_google_docstring = False
+napoleon_numpy_docstring = True
