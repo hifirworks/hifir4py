@@ -71,6 +71,14 @@ def _as_value_array(v):
     return np.asarray(v, dtype=np.float64)
 
 
+def _is_binary(filename):
+    # NOTE: try to detect binary file
+    textchars = bytearray({7, 8, 9, 10, 12, 13, 27} | set(range(0x20, 0x100)) - {0x7F})
+    with open(filename, "rb") as fin:
+        flag = fin.read(1024).translate(None, textchars)
+    return flag
+
+
 def convert_to_crs(*args, shape=None):
     """Helper function to convert arbitrarily user inputs
 
