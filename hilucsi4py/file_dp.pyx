@@ -18,15 +18,19 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.   #
 ###############################################################################
 
-# implementations of print wrappers
+# This file is to utilize Cython API feature to generate Python3 print
+# wrappers for stdout (1) and stderr (2), which will be wrapped as
+# HILUCSI_{STDOUT,STDERR}, resp.
 
 # Authors:
 #   Qiao,
 
 import sys
 
-cdef void hilucsi4py_stdout(const char *msg):
+
+cdef api void hilucsi4py_stdout(const char *msg):
     print(msg.decode('utf-8'), file=sys.stdout)
 
-cdef void hilucsi4py_stderr(const char *msg):
+
+cdef api void hilucsi4py_stderr(const char *msg):
     print(msg.decode('utf-8'), file=sys.stderr)
