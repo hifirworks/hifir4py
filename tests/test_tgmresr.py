@@ -18,4 +18,4 @@ def test_tgmresr():
     res = np.linalg.norm(x - 1) / np.linalg.norm(b)
     print(res, solver.resids[-1])
     assert res <= 1e-6
-    assert abs(res - solver.resids[-1]) <= 1e-15
+    assert abs(res - solver.resids[-1]) <= 1e-12

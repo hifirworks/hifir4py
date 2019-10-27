@@ -17,4 +17,4 @@ def test_fqmrcgstab():
     x, _ = solver.solve(A, b)
     res = np.linalg.norm(x - 1) / np.linalg.norm(b)
     assert res <= 1e-6
-    assert abs(res - solver.resids[-1]) <= 1e-14
+    assert abs(res - solver.resids[-1]) <= 1e-12
