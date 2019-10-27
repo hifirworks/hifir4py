@@ -33,8 +33,9 @@ them in Python3. This module includes:
 3. KSP solver(s)
 4. IO with native HILUCSI binary and ASCII files
 
-.. module:: hilucsi4py
-.. moduleauthor:: Qiao Chen, <qiao.chen@stonybrook.edu>
+.. module:: hilucsi4py._hilucsi4py
+    :noindex:
+.. moduleauthor:: Qiao Chen <qiao.chen@stonybrook.edu>
 """
 
 from cython.operator cimport dereference as deref
@@ -43,9 +44,7 @@ from libcpp.string cimport string as std_string
 from libc.stddef cimport size_t
 from libc.stdint cimport uint64_t
 from libcpp.vector cimport vector
-from libcpp.memory cimport shared_ptr
 from libcpp.utility cimport pair
-from libcpp cimport nullptr
 cimport hilucsi4py as hilucsi
 
 
@@ -59,43 +58,51 @@ ctypedef hilucsi.PyFBICGSTAB_Mixed *fbicgstab_mixed_ptr
 
 import os
 import numpy as np
-from .utils import (convert_to_crs, convert_to_crs_and_b, _as_index_array, _as_value_array)
+from .utils import (
+    convert_to_crs,
+    convert_to_crs_and_b,
+    _as_index_array,
+    _as_value_array,
+    _is_binary,
+)
 
 
 # whenever added new external objects, make sure update this table
 __all__ = [
-    'version',
-    'is_warning',
-    'enable_warning',
-    'disable_warning',
-    'VERBOSE_NONE',
-    'VERBOSE_INFO',
-    'VERBOSE_PRE',
-    'VERBOSE_FAC',
-    'VERBOSE_PRE_TIME',
-    'REORDER_OFF',
-    'REORDER_AUTO',
-    'REORDER_AMD',
-    'REORDER_RCM',
-    'Options',
-    'read_hilucsi',
-    'write_hilucsi',
-    'query_hilucsi_info',
-    'HILUCSI',
-    'HILUCSI_Mixed',
-    'KSP_Error',
-    'KSP_InvalidArgumentsError',
-    'KSP_MSolveError',
-    'KSP_DivergedError',
-    'KSP_StagnatedError',
-    'FGMRES',
-    'FGMRES_Mixed',
-    'FQMRCGSTAB',
-    'FQMRCGSTAB_Mixed',
-    'FBICGSTAB',
-    'FBICGSTAB_Mixed',
-    'TGMRESR',
-    'TGMRESR_Mixed'
+    "version",
+    "is_warning",
+    "enable_warning",
+    "disable_warning",
+    "VERBOSE_NONE",
+    "VERBOSE_INFO",
+    "VERBOSE_PRE",
+    "VERBOSE_FAC",
+    "VERBOSE_PRE_TIME",
+    "REORDER_OFF",
+    "REORDER_AUTO",
+    "REORDER_AMD",
+    "REORDER_RCM",
+    "Options",
+    "read_hilucsi",
+    "write_hilucsi",
+    "query_hilucsi_info",
+    "HILUCSI",
+    "HILUCSI_Mixed",
+    "KSP_Error",
+    "KSP_InvalidArgumentsError",
+    "KSP_MSolveError",
+    "KSP_DivergedError",
+    "KSP_StagnatedError",
+    "KSP_BreakDownError",
+    "KspSolver",
+    "FGMRES",
+    "FGMRES_Mixed",
+    "FQMRCGSTAB",
+    "FQMRCGSTAB_Mixed",
+    "FBICGSTAB",
+    "FBICGSTAB_Mixed",
+    "TGMRESR",
+    "TGMRESR_Mixed",
 ]
 
 # utilities
@@ -105,7 +112,7 @@ def version():
     The version number is also adapted to be the `hilucsi4py` version; the
     convension is ``global.major.minor``.
     """
-    return hilucsi.version().decode('utf-8')
+    return hilucsi.version().decode("utf-8")
 
 
 def is_warning():
@@ -139,7 +146,7 @@ REORDER_RCM = hilucsi.REORDER_RCM
 
 # determine total number of parameters
 def _get_opt_info():
-    raw_info = hilucsi.opt_repr(hilucsi.get_default_options()).decode('utf-8')
+    raw_info = hilucsi.opt_repr(hilucsi.get_default_options()).decode("utf-8")
     # split with newline
     info = list(filter(None, raw_info.split('\n')))
     return [x.split()[0].strip() for x in info]
@@ -166,7 +173,7 @@ cdef class Options:
 
     >>> from hilucsi4py import *
     >>> opts = Options()  # default parameters
-    >>> opts['verbose'] = VERBOSE_INFO | VERBOSE_FAC
+    >>> opts["verbose"] = VERBOSE_INFO | VERBOSE_FAC
     >>> opts.reset()  # reset to default parameters
     """
     cdef hilucsi.Options opts
@@ -195,10 +202,10 @@ cdef class Options:
     @property
     def verbose(self):
         """str: get the verbose flag(s)"""
-        return hilucsi.get_verbose(self.opts).decode('utf-8')
+        return hilucsi.get_verbose(self.opts).decode("utf-8")
 
     def __str__(self):
-        return hilucsi.opt_repr(self.opts).decode('utf-8')
+        return hilucsi.opt_repr(self.opts).decode("utf-8")
 
     def __repr__(self):
         return self.__str__()
@@ -207,17 +214,17 @@ cdef class Options:
         # convert to double
         cdef:
             double vv = v
-            std_string nm = opt_name.encode('utf-8')
+            std_string nm = opt_name.encode("utf-8")
         if hilucsi.set_option_attr[double](nm, vv, self.opts):
-            raise KeyError('unknown option name {}'.format(opt_name))
+            raise KeyError("unknown option name {}".format(opt_name))
 
     def __getitem__(self, str opt_name):
         if opt_name not in _OPT_LIST:
-            raise KeyError('unknown option name {}'.format(opt_name))
+            raise KeyError("unknown option name {}".format(opt_name))
         cdef int idx = _OPT_LIST.index(opt_name)
         attr = list(filter(None, self.__str__().split('\n')))[idx]
         v = list(filter(None, attr.split()))[1]
-        if opt_name in ('check', 'reorder', 'verbose'):
+        if opt_name in ("check", "reorder", "verbose"):
             return v
         if hilucsi.option_dtypes[idx]:
             return float(v)
@@ -232,21 +239,30 @@ def read_hilucsi(str filename, *, is_bin=None):
     ----------
     filename : str
         file name
-    is_bin : ``None`` or bool (optional)
-        if ``None``, then will automatically detect
+    is_bin : bool, optional
+        binary flag, leaving unset will automatically detect
 
     Returns
     -------
-    `tuple` of `nrows`, `ncols`, `m`, `indptr`, `indices`, `vals`
+    indptr : np.ndarray
+        Starting row position pointer array in CRS
+    indices : np.ndarray
+        List of column indices
+    vals : np.ndarray
+        List of numerical data values
+    shape : tuple
+        Matrix size shape, i.e., (nrows, ncols)
+    m : int
+        Size of leading symmetric block
 
     See Also
     --------
-    :func:`write_hilucsi` : write native formats
+    write_hilucsi : write native formats
     """
     if not os.path.isfile(filename):
         raise FileNotFoundError
     cdef:
-        std_string fn = filename.encode('utf-8')
+        std_string fn = filename.encode("utf-8")
         bool isbin
         vector[int] indptr
         vector[int] indices
@@ -255,31 +271,33 @@ def read_hilucsi(str filename, *, is_bin=None):
         size_t ncols = 0
         size_t m = 0
 
-    def is_binary():
-        textchars = \
-            bytearray({7,8,9,10,12,13,27} | set(range(0x20, 0x100)) - {0x7f})
-        fin = open(filename, 'rb')
-        flag = <bool> fin.read(1024).translate(None, textchars)
-        fin.close()
-        return flag
-
     if is_bin is None:
-        isbin = is_binary()
+        isbin = _is_binary(filename)
     else:
         isbin = <bool> is_bin
     hilucsi.read_hilucsi(fn, nrows, ncols, m, indptr, indices, vals, isbin)
-    return \
-        _as_index_array(indptr), \
-        _as_index_array(indices), \
-        _as_value_array(vals), (nrows, ncols), m
+    return (
+        _as_index_array(indptr),
+        _as_index_array(indices),
+        _as_value_array(vals),
+        (nrows, ncols),
+        m,
+    )
 
 
 
-def _write_hilucsi(str filename, int[::1] rowptr not None,
-    int[::1] colind not None, double[::1] vals not None, int nrows, int ncols,
-    int m, bool is_bin):
+cdef inline void _write_hilucsi(
+    str filename,
+    int[::1] rowptr,
+    int[::1] colind,
+    double[::1] vals,
+    int nrows,
+    int ncols,
+    int m,
+    bool is_bin
+):
     cdef:
-        std_string fn = filename.encode('utf-8')
+        std_string fn = filename.encode("utf-8")
         bool isbin = is_bin
     hilucsi.write_hilucsi(fn, nrows, ncols, &rowptr[0], &colind[0], &vals[0],
         m, isbin)
@@ -292,7 +310,7 @@ def write_hilucsi(str filename, *args, shape=None, m=0, is_bin=True):
     ----------
     filename : str
         file name
-    *args : input matrix
+    *args : positional arguments
         either three array of CRS or scipy sparse matrix
     shape : ``None`` or tuple
         if input is three array, then this must be given
@@ -303,7 +321,7 @@ def write_hilucsi(str filename, *args, shape=None, m=0, is_bin=True):
 
     See Also
     --------
-    :func:`read_hilucsi` : read native formats
+    read_hilucsi : read native formats
     """
     # essential checkings to avoid segfault
     cdef:
@@ -328,13 +346,23 @@ def query_hilucsi_info(str filename, *, is_bin=None):
 
     Returns
     -------
-    `tuple` of `is_row`, `is_c`, `is_double`, `is_real`, `nrows`, `ncols`,
-    `nnz`, and `m`
+    is_row : bool
+        If or not the matrix in file is row major (CRS)
+    is_c : bool
+        If or not C-based (should be true)
+    is_double : bool
+        If or not double precision
+    is_real : bool
+        If or not real number
+    nrows, ncols, nnz : int
+        Matrix sizes
+    m : int
+        Leading symmetric block size
     """
     if not os.path.isfile(filename):
         raise FileNotFoundError
     cdef:
-        std_string fn = filename.encode('utf-8')
+        std_string fn = filename.encode("utf-8")
         bool isbin
         bool is_row
         bool is_c
@@ -344,17 +372,9 @@ def query_hilucsi_info(str filename, *, is_bin=None):
         uint64_t ncols
         uint64_t nnz
         uint64_t m
-    
-    def is_binary():
-        textchars = \
-            bytearray({7,8,9,10,12,13,27} | set(range(0x20, 0x100)) - {0x7f})
-        fin = open(filename, 'rb')
-        flag = <bool> fin.read(1024).translate(None, textchars)
-        fin.close()
-        return flag
 
     if is_bin is None:
-        isbin = is_binary()
+        isbin = _is_binary(filename)
     else:
         isbin = <bool> is_bin
     hilucsi.query_hilucsi_info(fn, is_row, is_c, is_double, is_real, nrows,
@@ -380,10 +400,13 @@ cdef class HILUCSI:
     >>> M = HILUCSI()
     >>> M.factorize(A)
     """
-    cdef shared_ptr[hilucsi.PyHILUCSI] M
+    cdef PyHILUCSI_ptr M
+    cdef hilucsi.Options opts
 
     @staticmethod
     def is_mixed():
+        """Static method to check mixed precision
+        """
         return False
 
     def __init__(self):
@@ -392,6 +415,7 @@ cdef class HILUCSI:
 
     def __cinit__(self):
         self.M.reset(new hilucsi.PyHILUCSI())
+        self.opts = hilucsi.get_default_options()
 
     def empty(self):
         """Check if or not the builder is empty"""
@@ -432,68 +456,62 @@ cdef class HILUCSI:
         """
         return deref(self.M).stats(entry)
 
-    def _factorize(self, int[::1] rowptr not None, int[::1] colind not None,
-        double[::1] vals not None, size_t n, size_t m, Options opts):
-        cdef:
-            size_t m0 = m
-            Options my_opts = Options()
-        if opts is not None:
-            my_opts.opts = opts.opts
-        deref(self.M).factorize(n, &rowptr[0], &colind[0], &vals[0], m0,
-            my_opts.opts)
-
     def factorize(self, *args, shape=None, m=0, Options opts=None):
         """Compute/build the preconditioner
 
         Parameters
         ----------
-        *args : input matrix
+        *args : positional arguments
             either three array of CRS or scipy sparse matrix
-        shape : ``None`` or tuple
+        shape : tuple, optional
             if input is three array, then this must be given
-        m0 : int
-            leading symmetric block
-        opts : :py:class:`psmilu4py.Options` (optional)
+        m0 : int, optional
+            leading symmetric block, default is 0
+        opts : Options, optional
             control parameters, if ``None``, then use the default values
 
         See Also
         --------
-        :func:`solve`: solve for inv(HILUCSI)*x
+        solve : solve for inv(HILUCSI)*x
         """
         cdef:
             size_t n
         rowptr, colind, vals = convert_to_crs(*args, shape=shape)
-        assert len(rowptr), 'cannot deal with empty matrix'
+        assert len(rowptr), "cannot deal with empty matrix"
+        if opts is not None:
+            self.opts = opts.opts
         n = len(rowptr) - 1
-        self._factorize(rowptr, colind, vals, n, m, opts)
-
-    def _solve(self, double[::1] b not None, double[::1] x not None):
-        cdef size_t n = len(b)
-        assert n == len(x)
-        deref(self.M).solve(n, &b[0], &x[0])
+        factorize_M[PyHILUCSI_ptr](self.M, n, rowptr, colind, vals, m, &self.opts)
 
     def solve(self, b, x=None):
         r"""Core routine to use the preconditioner
 
-        Essentailly, this routine is to perform
+        Essentially, this routine is to perform
         :math:`\boldsymbol{x}=\boldsymbol{M}^{-1}\boldsymbol{b}`, where
         :math:`\boldsymbol{M}` is our MILU preconditioner.
 
         Parameters
         ----------
-        b : array-like
+        b : array_like
             right-hand side parameters
-        x : array-like (output) buffer (optional)
+        x : array_like output buffer, optional
             solution vector
+
+        Returns
+        -------
+        np.ndarray
+            Solution vector
         """
+        cdef size_t n
         bb = _as_value_array(b)
         assert len(bb.shape) == 1
         if x is None:
             xx = np.empty_like(bb)
         else:
             xx = _as_value_array(x)
-        assert xx.shape == bb.shape, 'inconsistent x and b'
-        self._solve(bb, xx)
+        assert xx.shape == bb.shape, "inconsistent x and b"
+        n = bb.size
+        solve_M[PyHILUCSI_ptr](self.M, n, bb, xx)
         return xx
 
 
@@ -515,10 +533,12 @@ cdef class HILUCSI_Mixed:
     >>> M = HILUCSI_Mixed()
     >>> M.factorize(A)
     """
-    cdef shared_ptr[hilucsi.PyHILUCSI_Mixed] M
+    cdef PyHILUCSI_Mixed_ptr M
+    cdef hilucsi.Options opts
 
     @staticmethod
     def is_mixed():
+        """Indicated mixed precision"""
         return True
 
     def __init__(self):
@@ -527,6 +547,7 @@ cdef class HILUCSI_Mixed:
 
     def __cinit__(self):
         self.M.reset(new hilucsi.PyHILUCSI_Mixed())
+        self.opts = hilucsi.get_default_options()
 
     def empty(self):
         """Check if or not the builder is empty"""
@@ -567,68 +588,70 @@ cdef class HILUCSI_Mixed:
         """
         return deref(self.M).stats(entry)
 
-    def _factorize(self, int[::1] rowptr not None, int[::1] colind not None,
-        double[::1] vals not None, size_t n, size_t m, Options opts):
-        cdef:
-            size_t m0 = m
-            Options my_opts = Options()
-        if opts is not None:
-            my_opts.opts = opts.opts
-        deref(self.M).factorize(n, &rowptr[0], &colind[0], &vals[0], m0,
-            my_opts.opts)
-
     def factorize(self, *args, shape=None, m=0, Options opts=None):
         """Compute/build the preconditioner
 
         Parameters
         ----------
-        *args : input matrix
+        *args : positional arguments
             either three array of CRS or scipy sparse matrix
-        shape : ``None`` or tuple
+        shape : tuple, optional
             if input is three array, then this must be given
         m0 : int
             leading symmetric block
-        opts : :py:class:`psmilu4py.Options` (optional)
+        opts : Options, optional
             control parameters, if ``None``, then use the default values
 
         See Also
         --------
-        :func:`solve`: solve for inv(HILUCSI)*x
+        solve: solve for inv(HILUCSI)*x
         """
         cdef:
             size_t n
         rowptr, colind, vals = convert_to_crs(*args, shape=shape)
-        assert len(rowptr), 'cannot deal with empty matrix'
+        assert len(rowptr), "cannot deal with empty matrix"
         n = len(rowptr) - 1
-        self._factorize(rowptr, colind, vals, n, m, opts)
-
-    def _solve(self, double[::1] b not None, double[::1] x not None):
-        cdef size_t n = len(b)
-        assert n == len(x)
-        deref(self.M).solve(n, &b[0], &x[0])
+        if opts is not None:
+            self.opts = opts.opts
+        factorize_M[PyHILUCSI_Mixed_ptr](
+            self.M,
+            n,
+            rowptr,
+            colind,
+            vals,
+            m,
+            &self.opts
+        )
 
     def solve(self, b, x=None):
         r"""Core routine to use the preconditioner
 
-        Essentailly, this routine is to perform
+        Essentially, this routine is to perform
         :math:`\boldsymbol{x}=\boldsymbol{M}^{-1}\boldsymbol{b}`, where
         :math:`\boldsymbol{M}` is our MILU preconditioner.
 
         Parameters
         ----------
-        b : array-like
+        b : array_like
             right-hand side parameters
-        x : array-like (output) buffer (optional)
+        x : array_like output buffer, optional
             solution vector
+
+        Returns
+        -------
+        np.ndarray
+            Solution vector
         """
+        cdef size_t n
         bb = _as_value_array(b)
         assert len(bb.shape) == 1
         if x is None:
             xx = np.empty_like(bb)
         else:
             xx = _as_value_array(x)
-        assert xx.shape == bb.shape, 'inconsistent x and b'
-        self._solve(bb, xx)
+        assert xx.shape == bb.shape, "inconsistent x and b"
+        n = bb.size
+        solve_M[PyHILUCSI_Mixed_ptr](self.M, n, bb, xx)
         return xx
 
 
@@ -678,14 +701,14 @@ def _handle_flag(int flag):
 
 def _handle_kernel(str kernel):
     cdef int kn
-    if kernel == 'tradition':
+    if kernel == "tradition":
         kn = hilucsi.TRADITION
-    elif kernel == 'jacobi':
+    elif kernel == "jacobi":
         kn = hilucsi.JACOBI
-    elif kernel == 'chebyshev-jacobi':
+    elif kernel == "chebyshev-jacobi":
         kn = hilucsi.CHEBYSHEV_JACOBI
     else:
-        choices = ('tradition', 'jacobi', 'chebyshev-jacobi')
+        choices = ("tradition", "jacobi", "chebyshev-jacobi")
         raise KSP_InvalidArgumentsError(
             'invalid kernel {}, must be {}'.format(kernel, choices))
     return kn
@@ -701,29 +724,15 @@ cdef class KspSolver:
     combining with the input matrix :math:`\boldsymbol{A}`; finally, the last
     fashion is an extension to ``jacobi`` with Chebyshev acceleration, which
     requires estimations of the largest and smallest eigenvalues.
-
-    Parameters
-    ----------
-    rtol : float
-        relative tolerance, default is 1e-6
-    maxit : int
-        maximum iterations, default is 500
-    restart : int
-        restart in GMRES, default is 30
-    max_inners : int
-        maximum inner iterations used in Jacobi style kernle, default is 4
-    lamb1 : float or ``None``
-        if given, then used as the largest eigenvalue estimation
-    lamb2 : float or ``None``
-        if given, then used as the smallest eigenvalue estimation
     """
-    cdef shared_ptr[hilucsi.KspSolver] solver
+    cdef KSP_ptr solver
 
     @classmethod
     def is_mixed(cls):
-        name = cls.__name__.split('_')
+        """Indicated if or not the solver is mixed precision enabled"""
+        name = cls.__name__.split("_")
         if len(name) > 1:
-            return name[-1] == 'Mixed'
+            return name[-1] == "Mixed"
         return False
 
     def __init__(self):
@@ -734,7 +743,7 @@ cdef class KspSolver:
 
     @property
     def rtol(self):
-        """float: relative convergence tolerance (1e-6)"""
+        "float: relative convergence tolerance (1e-6)"
         return deref(self.solver).get_rtol()
 
     @rtol.setter
@@ -791,48 +800,45 @@ cdef class KspSolver:
         deref(self.solver).get_resids(res.data())
         return res
 
-    def _solve(self, int[::1] rowptr, int[::1] colind, double[::1] vals,
-        double[::1] b, double[::1] x, int kernel, bool with_init_guess,
-        bool verbose):
-        cdef:
-            size_t n = b.size
-            bool wg = with_init_guess
-            bool v = verbose
-            pair[int, size_t] info
-        info = deref(self.solver).solve(n, &rowptr[0], &colind[0], &vals[0],
-            &b[0], &x[0], kernel, wg, v)
-        return info.first, info.second
-
-    def solve(self, *args, shape=None, x=None, kernel='tradition',
-        init_guess=False, verbose=True):
+    def solve(
+        self,
+        *args,
+        shape=None,
+        x=None,
+        kernel="tradition",
+        init_guess=False,
+        verbose=True
+    ):
         """Sovle the rhs solution
 
         Parameters
         ----------
-        *args : input matrix
+        *args : positional arguments
             either three array of CRS or scipy sparse matrix, and rhs b
-        shape : ``None`` or tuple (optional)
+        shape : tuple, optional
             if input is three array, then this must be given
-        x : ``None`` or buffer of solution
+        x : np.ndarray, optional
             for efficiency purpose, one can provide the buffer
-        kernel : str (optional)
-            kernel for preconditioning, either 'tradition', 'jacobi', or
-            'chebyshev-jacobi'
-        init_guess : bool (optional)
+        kernel : {"tradition","jacobi","chebyshev-jacobi"}, optional
+            kernel for preconditioning, default is traditional
+        init_guess : bool, optional
             if ``False`` (default), then set initial state to be zeros
-        verbose : bool (optional)
+        verbose : bool, optional
             if `True`` (default), then enable verbose printing
 
         Returns
         -------
-        tuple of solutions and iterations used.
+        x : np.ndarray
+            Solution array
+        iters : int
+            Number of iterations used
 
         Raises
         ------
         KSP_InvalidArgumentsError
             invalid input arguments
         KSP_MSolveError
-            preconditioenr solver error, see :func:`HILUCSI.solve`
+            preconditioner solver error, see :func:`HILUCSI.solve`
         KSP_DivergedError
             iterations diverge due to exceeding :attr:`maxit`
         KSP_StagnatedError
@@ -842,7 +848,10 @@ cdef class KspSolver:
         """
         if init_guess and x is None:
             raise KSP_InvalidArgumentsError('init-guess missing x0')
-        cdef int kn = _handle_kernel(kernel)
+        cdef:
+            int kn = _handle_kernel(kernel)
+            pair[int, size_t] info
+            size_t n
         rowptr, colind, vals, b = convert_to_crs_and_b(*args, shape=shape)
         if x is None:
             xx = np.empty_like(b)
@@ -850,14 +859,25 @@ cdef class KspSolver:
             xx = _as_value_array(x)
         if xx.shape != b.shape:
             raise ValueError('inconsistent x and b')
-        flag, iters = self._solve(rowptr, colind, vals, b, xx, kn, init_guess,
-            verbose)
-        _handle_flag(flag)
-        return xx, iters
+        n = b.size
+        info = solve_KSP(
+            self.solver,
+            n,
+            rowptr,
+            colind,
+            vals,
+            b,
+            xx,
+            kn,
+            init_guess,
+            verbose,
+        )
+        _handle_flag(info.first)
+        return xx, info.second
 
     def __str__(self):
         fmt = self.__class__.__name__
-        fmt += '\nrtol={}\nmaxit={}\n'.format(self.rtol, self.maxit)
+        fmt += "\nrtol={}\nmaxit={}\n".format(self.rtol, self.maxit)
         return fmt
 
     def __repr__(self):
@@ -877,19 +897,19 @@ cdef class FGMRES(KspSolver):
 
     Parameters
     ----------
-    M : :class:`HILUCSI` or ``None``
+    M : HILUCSI, optional
         preconditioner
-    rtol : float
+    rtol : float, optional
         relative tolerance, default is 1e-6
-    maxit : int
+    maxit : int, optional
         maximum iterations, default is 500
-    restart : int
+    restart : int, optional
         restart in GMRES, default is 30
-    max_inners : int
-        maximum inner iterations used in Jacobi style kernle, default is 4
-    lamb1 : float or ``None``
+    max_inners : int, optional
+        maximum inner iterations used in Jacobi style kernel, default is 4
+    lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
-    lamb2 : float or ``None``
+    lamb2 : float, optional
         if given, then used as the smallest eigenvalue estimation
 
     Examples
@@ -905,12 +925,26 @@ cdef class FGMRES(KspSolver):
     >>> x = solver.solve(A, np.random.rand(10))
     """
 
-    def __init__(self, M=None, rtol=1e-6, restart=30, maxit=500, max_inners=4,
-                 **kw):
+    def __init__(
+        self,
+        M=None,
+        rtol=1e-6,
+        restart=30,
+        maxit=500,
+        max_inners=4,
+        **kw
+    ):
         pass
 
-    def __cinit__(self, HILUCSI M=None, double rtol=1e-6, int restart=30,
-                  int maxit=500, int max_inners=4, **kw):
+    def __cinit__(
+        self,
+        HILUCSI M=None,
+        double rtol=1e-6,
+        int restart=30,
+        int maxit=500,
+        int max_inners=4,
+        **kw
+    ):
         self.solver.reset(new hilucsi.PyFGMRES())
         if M is not None:
             deref(<fgmres_ptr>self.solver.get()).set_M(M.M)
@@ -919,10 +953,10 @@ cdef class FGMRES(KspSolver):
         deref(self.solver).set_maxit(maxit)
         deref(self.solver).set_inner_steps(max_inners)
         deref(self.solver).check_pars()
-        lamb1 = kw.pop('lamb1', None)
+        lamb1 = kw.pop("lamb1", None)
         if lamb1 is not None:
             deref(self.solver).set_lamb1(lamb1)
-        lamb2 = kw.pop('lamb2', None)
+        lamb2 = kw.pop("lamb2", None)
         if lamb2 is not None:
             deref(self.solver).set_lamb2(lamb2)
 
@@ -956,8 +990,9 @@ cdef class FGMRES(KspSolver):
 
     def __str__(self):
         fmt = self.__class__.__name__
-        fmt += '\nrtol={}\nmaxit={}\nrestart={}\n'.format(
-            self.rtol, self.maxit, self.restart)
+        fmt += "\nrtol={}\nmaxit={}\nrestart={}\n".format(
+            self.rtol, self.maxit, self.restart
+        )
         return fmt
 
 
@@ -974,19 +1009,19 @@ cdef class FGMRES_Mixed(KspSolver):
 
     Parameters
     ----------
-    M : :class:`HILUCSI_Mixed` or ``None``
+    M : HILUCSI_Mixed, optional
         preconditioner
-    rtol : float
+    rtol : float, optional
         relative tolerance, default is 1e-6
-    maxit : int
+    maxit : int, optional
         maximum iterations, default is 500
-    restart : int
+    restart : int, optional
         restart in GMRES, default is 30
-    max_inners : int
-        maximum inner iterations used in Jacobi style kernle, default is 4
-    lamb1 : float or ``None``
+    max_inners : int, optional
+        maximum inner iterations used in Jacobi style kernel, default is 4
+    lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
-    lamb2 : float or ``None``
+    lamb2 : float, optional
         if given, then used as the smallest eigenvalue estimation
 
     Examples
@@ -1002,12 +1037,26 @@ cdef class FGMRES_Mixed(KspSolver):
     >>> x = solver.solve(A, np.random.rand(10))
     """
 
-    def __init__(self, M=None, rtol=1e-6, restart=30, maxit=500, max_inners=4,
-                 **kw):
+    def __init__(
+        self,
+        M=None,
+        rtol=1e-6,
+        restart=30,
+        maxit=500,
+        max_inners=4,
+        **kw
+    ):
         pass
 
-    def __cinit__(self, HILUCSI_Mixed M=None, double rtol=1e-6, int restart=30,
-                  int maxit=500, int max_inners=4, **kw):
+    def __cinit__(
+        self,
+        HILUCSI_Mixed M=None,
+        double rtol=1e-6,
+        int restart=30,
+        int maxit=500,
+        int max_inners=4,
+        **kw
+    ):
         self.solver.reset(new hilucsi.PyFGMRES_Mixed())
         if M is not None:
             deref(<fgmres_mixed_ptr>self.solver.get()).set_M(M.M)
@@ -1016,10 +1065,10 @@ cdef class FGMRES_Mixed(KspSolver):
         deref(self.solver).set_maxit(maxit)
         deref(self.solver).set_inner_steps(max_inners)
         deref(self.solver).check_pars()
-        lamb1 = kw.pop('lamb1', None)
+        lamb1 = kw.pop("lamb1", None)
         if lamb1 is not None:
             deref(self.solver).set_lamb1(lamb1)
-        lamb2 = kw.pop('lamb2', None)
+        lamb2 = kw.pop("lamb2", None)
         if lamb2 is not None:
             deref(self.solver).set_lamb2(lamb2)
 
@@ -1053,8 +1102,9 @@ cdef class FGMRES_Mixed(KspSolver):
 
     def __str__(self):
         fmt = self.__class__.__name__
-        fmt += '\nrtol={}\nmaxit={}\nrestart={}\n'.format(
-            self.rtol, self.maxit, self.restart)
+        fmt += "\nrtol={}\nmaxit={}\nrestart={}\n".format(
+            self.rtol, self.maxit, self.restart
+        )
         return fmt
 
 
@@ -1071,17 +1121,17 @@ cdef class FQMRCGSTAB(KspSolver):
 
     Parameters
     ----------
-    M : :class:`HILUCSI` or ``None``
+    M : HILUCSI, optional
         preconditioner
-    rtol : float
+    rtol : float, optional
         relative tolerance, default is 1e-6
-    maxit : int
-        maximum iterations, default is 500
-    innersteps : int
-        inner iterations used in Jacobi style kernle, default is 4
-    lamb1 : float or ``None``
+    restart : int, optional
+        restart in GMRES, default is 30
+    innersteps : int, optional
+        maximum inner iterations used in Jacobi style kernel, default is 4
+    lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
-    lamb2 : float or ``None``
+    lamb2 : float, optional
         if given, then used as the smallest eigenvalue estimation
 
     Examples
@@ -1100,8 +1150,14 @@ cdef class FQMRCGSTAB(KspSolver):
     def __init__(self, M=None, rtol=1e-6, maxit=500, innersteps=4, **kw):
         pass
 
-    def __cinit__(self, HILUCSI M=None, double rtol=1e-6, int maxit=500,
-        int innersteps=4, **kw):
+    def __cinit__(
+        self,
+        HILUCSI M=None,
+        double rtol=1e-6,
+        int maxit=500,
+        int innersteps=4,
+        **kw
+    ):
         self.solver.reset(new hilucsi.PyFQMRCGSTAB())
         if M is not None:
             deref(<fqmrcgstab_ptr>self.solver.get()).set_M(M.M)
@@ -1109,10 +1165,10 @@ cdef class FQMRCGSTAB(KspSolver):
         deref(self.solver).set_maxit(maxit)
         deref(self.solver).set_inner_steps(innersteps)
         deref(self.solver).check_pars()
-        lamb1 = kw.pop('lamb1', None)
+        lamb1 = kw.pop("lamb1", None)
         if lamb1 is not None:
             deref(self.solver).set_lamb1(lamb1)
-        lamb2 = kw.pop('lamb2', None)
+        lamb2 = kw.pop("lamb2", None)
         if lamb2 is not None:
             deref(self.solver).set_lamb2(lamb2)
 
@@ -1147,17 +1203,17 @@ cdef class FQMRCGSTAB_Mixed(KspSolver):
 
     Parameters
     ----------
-    M : :class:`HILUCSI_Mixed` or ``None``
+    M : HILUCSI_Mixed, optional
         preconditioner
-    rtol : float
+    rtol : float, optional
         relative tolerance, default is 1e-6
-    maxit : int
+    maxit : int, optional
         maximum iterations, default is 500
-    innersteps : int
-        inner iterations used in Jacobi style kernle, default is 4
-    lamb1 : float or ``None``
+    innersteps : int, optional
+        maximum inner iterations used in Jacobi style kernel, default is 4
+    lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
-    lamb2 : float or ``None``
+    lamb2 : float, optional
         if given, then used as the smallest eigenvalue estimation
 
     Examples
@@ -1176,8 +1232,14 @@ cdef class FQMRCGSTAB_Mixed(KspSolver):
     def __init__(self, M=None, rtol=1e-6, maxit=500, innersteps=4, **kw):
         pass
 
-    def __cinit__(self, HILUCSI_Mixed M=None, double rtol=1e-6, int maxit=500,
-        int innersteps=4, **kw):
+    def __cinit__(
+        self,
+        HILUCSI_Mixed M=None,
+        double rtol=1e-6,
+        int maxit=500,
+        int innersteps=4,
+        **kw,
+    ):
         self.solver.reset(new hilucsi.PyFQMRCGSTAB_Mixed())
         if M is not None:
             deref(<fqmrcgstab_mixed_ptr>self.solver.get()).set_M(M.M)
@@ -1223,17 +1285,17 @@ cdef class FBICGSTAB(KspSolver):
 
     Parameters
     ----------
-    M : :class:`HILUCSI` or ``None``
+    M : HILUCSI, optional
         preconditioner
-    rtol : float
+    rtol : float, optional
         relative tolerance, default is 1e-6
-    maxit : int
-        maximum iterations, default is 500
-    innersteps : int
-        inner iterations used in Jacobi style kernle, default is 4
-    lamb1 : float or ``None``
+    restart : int, optional
+        restart in GMRES, default is 30
+    innersteps : int, optional
+        maximum inner iterations used in Jacobi style kernel, default is 4
+    lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
-    lamb2 : float or ``None``
+    lamb2 : float, optional
         if given, then used as the smallest eigenvalue estimation
 
     Examples
@@ -1252,8 +1314,14 @@ cdef class FBICGSTAB(KspSolver):
     def __init__(self, M=None, rtol=1e-6, maxit=500, innersteps=4, **kw):
         pass
 
-    def __cinit__(self, HILUCSI M=None, double rtol=1e-6, int maxit=500,
-        int innersteps=4, **kw):
+    def __cinit__(
+        self,
+        HILUCSI M=None,
+        double rtol=1e-6,
+        int maxit=500,
+        int innersteps=4,
+        **kw,
+    ):
         self.solver.reset(new hilucsi.PyFBICGSTAB())
         if M is not None:
             deref(<fbicgstab_ptr>self.solver.get()).set_M(M.M)
@@ -1299,17 +1367,17 @@ cdef class FBICGSTAB_Mixed(KspSolver):
 
     Parameters
     ----------
-    M : :class:`HILUCSI_Mixed` or ``None``
+    M : HILUCSI_Mixed, optional
         preconditioner
-    rtol : float
+    rtol : float, optional
         relative tolerance, default is 1e-6
-    maxit : int
+    maxit : int, optional
         maximum iterations, default is 500
-    innersteps : int
-        inner iterations used in Jacobi style kernle, default is 4
-    lamb1 : float or ``None``
+    innersteps : int, optional
+        maximum inner iterations used in Jacobi style kernel, default is 4
+    lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
-    lamb2 : float or ``None``
+    lamb2 : float, optional
         if given, then used as the smallest eigenvalue estimation
 
     Examples
@@ -1328,8 +1396,14 @@ cdef class FBICGSTAB_Mixed(KspSolver):
     def __init__(self, M=None, rtol=1e-6, maxit=500, innersteps=4, **kw):
         pass
 
-    def __cinit__(self, HILUCSI_Mixed M=None, double rtol=1e-6, int maxit=500,
-        int innersteps=4, **kw):
+    def __cinit__(
+        self,
+        HILUCSI_Mixed M=None,
+        double rtol=1e-6,
+        int maxit=500,
+        int innersteps=4,
+        **kw,
+    ):
         self.solver.reset(new hilucsi.PyFBICGSTAB_Mixed())
         if M is not None:
             deref(<fbicgstab_mixed_ptr>self.solver.get()).set_M(M.M)
@@ -1375,19 +1449,19 @@ cdef class TGMRESR(KspSolver):
 
     Parameters
     ----------
-    M : :class:`HILUCSI` or ``None``
+    M : HILUCSI, optional
         preconditioner
-    rtol : float
+    rtol : float, optional
         relative tolerance, default is 1e-6
-    maxit : int
+    maxit : int, optional
         maximum iterations, default is 500
-    cycle : int
+    cycle : int, optional
         truncated cycle in GMRESR, default is 10
-    max_inners : int
-        maximum inner iterations used in Jacobi style kernle, default is 4
-    lamb1 : float or ``None``
+    max_inners : int, optional
+        maximum inner iterations used in Jacobi style kernel, default is 4
+    lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
-    lamb2 : float or ``None``
+    lamb2 : float, optional
         if given, then used as the smallest eigenvalue estimation
 
     Examples
@@ -1403,12 +1477,26 @@ cdef class TGMRESR(KspSolver):
     >>> x = solver.solve(A, np.random.rand(10))
     """
 
-    def __init__(self, M=None, rtol=1e-6, cycle=10, maxit=500, max_inners=4,
-                 **kw):
+    def __init__(
+        self,
+        M=None,
+        rtol=1e-6,
+        cycle=10,
+        maxit=500,
+        max_inners=4,
+        **kw
+    ):
         pass
 
-    def __cinit__(self, HILUCSI M=None, double rtol=1e-6, int cycle=10,
-                  int maxit=500, int max_inners=4, **kw):
+    def __cinit__(
+        self,
+        HILUCSI M=None,
+        double rtol=1e-6,
+        int cycle=10,
+        int maxit=500,
+        int max_inners=4,
+        **kw
+    ):
         self.solver.reset(new hilucsi.PyFGMRES())
         if M is not None:
             deref(<fgmres_ptr>self.solver.get()).set_M(M.M)
@@ -1454,8 +1542,9 @@ cdef class TGMRESR(KspSolver):
 
     def __str__(self):
         fmt = self.__class__.__name__
-        fmt += '\nrtol={}\nmaxit={}\ncycle={}\n'.format(
-            self.rtol, self.maxit, self.cycle)
+        fmt += "\nrtol={}\nmaxit={}\ncycle={}\n".format(
+            self.rtol, self.maxit, self.cycle
+        )
         return fmt
 
 
@@ -1472,19 +1561,19 @@ cdef class TGMRESR_Mixed(KspSolver):
 
     Parameters
     ----------
-    M : :class:`HILUCSI_Mixed` or ``None``
+    M : HILUCSI_Mixed, optional
         preconditioner
-    rtol : float
+    rtol : float, optional
         relative tolerance, default is 1e-6
-    maxit : int
+    maxit : int, optional
         maximum iterations, default is 500
-    cycle : int
+    cycle : int, optional
         truncated cycle in GMRESR, default is 10
-    max_inners : int
-        maximum inner iterations used in Jacobi style kernle, default is 4
-    lamb1 : float or ``None``
+    max_inners : int, optional
+        maximum inner iterations used in Jacobi style kernel, default is 4
+    lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
-    lamb2 : float or ``None``
+    lamb2 : float, optional
         if given, then used as the smallest eigenvalue estimation
 
     Examples
@@ -1500,12 +1589,18 @@ cdef class TGMRESR_Mixed(KspSolver):
     >>> x = solver.solve(A, np.random.rand(10))
     """
 
-    def __init__(self, M=None, rtol=1e-6, cycle=10, maxit=500, max_inners=4,
-                 **kw):
+    def __init__(self, M=None, rtol=1e-6, cycle=10, maxit=500, max_inners=4, **kw):
         pass
 
-    def __cinit__(self, HILUCSI_Mixed M=None, double rtol=1e-6, int cycle=10,
-                  int maxit=500, int max_inners=4, **kw):
+    def __cinit__(
+        self,
+        HILUCSI_Mixed M=None,
+        double rtol=1e-6,
+        int cycle=10,
+        int maxit=500,
+        int max_inners=4,
+        **kw,
+    ):
         self.solver.reset(new hilucsi.PyFGMRES_Mixed())
         if M is not None:
             deref(<fgmres_mixed_ptr>self.solver.get()).set_M(M.M)
@@ -1551,6 +1646,7 @@ cdef class TGMRESR_Mixed(KspSolver):
 
     def __str__(self):
         fmt = self.__class__.__name__
-        fmt += '\nrtol={}\nmaxit={}\nrestart={}\n'.format(
-            self.rtol, self.maxit, self.restart)
+        fmt += "\nrtol={}\nmaxit={}\nrestart={}\n".format(
+            self.rtol, self.maxit, self.restart
+        )
         return fmt
