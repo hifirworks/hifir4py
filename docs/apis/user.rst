@@ -5,5 +5,9 @@ User Interface
 
 .. currentmodule:: hilucsi4py
 
-.. autofunction:: hilucsi4py.create_ksp
-.. autofunction:: hilucsi4py.create_M
+.. automodule:: hilucsi4py
+    :members:
+    :exclude-members: hilucsi4py.get_include
+
+.. autoclass:: hilucsi4py._hilucsi4py.Options
+    :members:

@@ -7,3 +7,4 @@ Core Components
 
 .. automodule:: hilucsi4py._hilucsi4py
     :members:
+    :exclude-members: Options
