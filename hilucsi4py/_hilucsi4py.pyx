@@ -17,12 +17,6 @@
 #    You should have received a copy of the GNU General Public License        #
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.   #
 ###############################################################################
-
-# Authors:
-#   Qiao,
-
-# This is the implementation for Options
-
 """This is the main module contains the implementation of ``hilucsi4py``
 
 The module wraps the internal components defined in HILUCSI and safely brings
@@ -48,6 +42,14 @@ from libcpp.utility cimport pair
 cimport hilucsi4py as hilucsi
 
 
+cdef extern from 'hilucsi4py.hpp' namespace 'hilucsi::internal' nogil:
+    # using an internal var to determine the data types of options
+    # true for double, flase for int
+    cdef enum:
+        _HILUCSI_TOTAL_OPTIONS
+    bool option_dtypes[_HILUCSI_TOTAL_OPTIONS]
+
+
 ctypedef hilucsi.PyFGMRES *fgmres_ptr
 ctypedef hilucsi.PyFGMRES_Mixed *fgmres_mixed_ptr
 ctypedef hilucsi.PyFQMRCGSTAB *fqmrcgstab_ptr
@@ -69,10 +71,6 @@ from .utils import (
 
 # whenever added new external objects, make sure update this table
 __all__ = [
-    "version",
-    "is_warning",
-    "enable_warning",
-    "disable_warning",
     "VERBOSE_NONE",
     "VERBOSE_INFO",
     "VERBOSE_PRE",
@@ -106,27 +104,19 @@ __all__ = [
 ]
 
 # utilities
-def version():
-    """Check the backend HILUCSI version
-
-    The version number is also adapted to be the `hilucsi4py` version; the
-    convension is ``global.major.minor``.
-    """
+def _version():
     return hilucsi.version().decode("utf-8")
 
 
-def is_warning():
-    """Check if underlying HILUCSI enables warning"""
+def _is_warning():
     return hilucsi.warn_flag(-1)
 
 
-def enable_warning():
-    """Enable warning for underlying HILUCSI routines"""
+def _enable_warning():
     hilucsi.warn_flag(1)
 
 
-def disable_warning():
-    """Disable warning messages from HILUCSI"""
+def _disable_warning():
     hilucsi.warn_flag(0)
 
 
@@ -148,7 +138,7 @@ REORDER_RCM = hilucsi.REORDER_RCM
 def _get_opt_info():
     raw_info = hilucsi.opt_repr(hilucsi.get_default_options()).decode("utf-8")
     # split with newline
-    info = list(filter(None, raw_info.split('\n')))
+    info = list(filter(None, raw_info.split("\n")))
     return [x.split()[0].strip() for x in info]
 
 
@@ -177,13 +167,28 @@ cdef class Options:
     >>> opts.reset()  # reset to default parameters
     """
     cdef hilucsi.Options opts
+    cdef int __idx
 
-    def __init__(self):
+    @staticmethod
+    def option_list():
+        """Get a supported options list
+
+        Returns
+        -------
+        list(str)
+            A list of option names
+        """
+        return _OPT_LIST.copy()
+
+    def __init__(self, **kw):
         # for enabling docstring purpose
         pass
 
-    def __cinit__(self):
+    def __cinit__(self, **kw):
         self.opts = hilucsi.get_default_options()
+        self.__idx = 0
+        for k, v in kw.items():
+            self.__setitem__(k, v)
 
     def reset(self):
         """This function will reset all options to their default values"""
@@ -211,6 +216,20 @@ cdef class Options:
         return self.__str__()
 
     def __setitem__(self, str opt_name, v):
+        """Set a configuration with keyvalue pair
+
+        Parameters
+        ----------
+        opt_name : str
+            Option name
+        v : int or float
+            Corresponding value
+
+        Raises
+        ------
+        KeyError
+            Raised as per unsupported options
+        """
         # convert to double
         cdef:
             double vv = v
@@ -219,6 +238,18 @@ cdef class Options:
             raise KeyError("unknown option name {}".format(opt_name))
 
     def __getitem__(self, str opt_name):
+        """Retrieve the value given an option
+
+        Parameters
+        ----------
+        opt_name : str
+            Option name
+
+        Returns
+        -------
+        int or float
+            Option value
+        """
         if opt_name not in _OPT_LIST:
             raise KeyError("unknown option name {}".format(opt_name))
         cdef int idx = _OPT_LIST.index(opt_name)
@@ -226,9 +257,41 @@ cdef class Options:
         v = list(filter(None, attr.split()))[1]
         if opt_name in ("check", "reorder", "verbose"):
             return v
-        if hilucsi.option_dtypes[idx]:
+        if option_dtypes[idx]:
             return float(v)
         return int(v)
+
+    def __iter__(self):
+        self.__idx = 0
+        return self
+
+    def __next__(self):
+        if self.__idx >= len(_OPT_LIST):
+            raise StopIteration
+        try:
+            return self.__getitem__(_OPT_LIST[self.__idx])
+        finally:
+            self.__idx += 1
+
+    def dict(self):
+        """Convert to dictionary
+        """
+        return {k: self.__getitem__(k) for k in _OPT_LIST}
+
+    def keys(self):
+        """Get keys
+        """
+        return self.dict().keys()
+
+    def values(self):
+        """Get values
+        """
+        return self.dict().values()
+
+    def items(self):
+        """Get items
+        """
+        return self.dict().items()
 
 
 # I/O
