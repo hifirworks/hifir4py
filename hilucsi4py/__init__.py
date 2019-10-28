@@ -17,9 +17,125 @@
 #    You should have received a copy of the GNU General Public License        #
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.   #
 ###############################################################################
+from enum import IntEnum
+
 from ._hilucsi4py import *
 
-__version__ = version()
+
+class Configuration:
+    """HILUCSI4PY configuration interface
+    """
+
+    @staticmethod
+    def version():
+        """Check the backend HILUCSI version
+
+        The version number is also adapted to be the `hilucsi4py` version; the
+        convension is ``global.major.minor``.
+
+        Returns
+        -------
+        str
+            Version number
+        """
+        from ._hilucsi4py import _version
+
+        return _version()
+
+    @staticmethod
+    def is_warning():
+        """Check if the internal warning logging is on
+
+        Returns
+        -------
+        bool
+            True if the waring log is on
+        """
+        from ._hilucsi4py import _is_warning
+
+        return _is_warning()
+
+    @staticmethod
+    def enable_warning():
+        """Enable warning for underlying HILUCSI routines
+
+        See Also
+        --------
+        is_warning
+        disable_warning
+        """
+        from ._hilucsi4py import _enable_warning
+
+        _enable_warning()
+
+    @staticmethod
+    def disable_warning():
+        """Disable warning messages from HILUCSI
+
+        See Also
+        --------
+        enable_warning
+        is_warning
+        """
+        from ._hilucsi4py import _disable_warning
+
+        _disable_warning()
+
+
+__version__ = Configuration.version()
+"""str: version number"""
+
+
+class Verbose(IntEnum):
+    """Verbose level
+
+    .. note:: All attributes are bit masks that support bit-wise ``or``
+    """
+
+    NONE = VERBOSE_NONE
+    """NONE mask, use to disable verbose
+    """
+
+    INFO = VERBOSE_INFO
+    """General info mask (set by default)
+    """
+
+    PRE = VERBOSE_PRE
+    """Enable verbose information with regards to preprocessing
+    """
+
+    FAC = VERBOSE_FAC
+    """Enable verbose for factorization
+
+    .. warning:: This will slow down the factorization significantly!
+    """
+
+    PRE_TIME = VERBOSE_PRE_TIME
+    """Enable timing on preprocessing
+    """
+
+
+class Reorder(IntEnum):
+    """Reorder options
+    """
+
+    OFF = REORDER_OFF
+    """Disable reorder
+
+    .. warning:: Not recommended!
+    """
+
+    AUTO = REORDER_AUTO
+    """Automatically determined reordering scheme (default)
+    """
+
+    AMD = REORDER_AMD
+    """Using approximate minimal degree (AMD) for all levels
+    """
+
+    RCM = REORDER_RCM
+    """Using reverse Cuthill-Mckee (RCM) for all levels
+    """
 
 
 def get_include():
