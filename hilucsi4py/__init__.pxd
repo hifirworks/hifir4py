@@ -209,9 +209,3 @@ cdef extern from 'hilucsi4py.hpp' namespace 'hilucsi::ksp' nogil:
         TRADITION
         JACOBI
         CHEBYSHEV_JACOBI
-
-
-cdef extern from 'hilucsi4py.hpp' namespace 'hilucsi::internal' nogil:
-    # using an internal var to determine the data types of options
-    # true for double, flase for int
-    bool option_dtypes[18]
