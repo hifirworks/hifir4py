@@ -62,6 +62,7 @@ class BuildExt(build_ext):
             return True
 
         opts = []
+        has_omp = False
         if cpl_type == "unix":
             assert test_switch("-std=c++11"), "must have C++11 support"
             if test_switch("-std=c++1z"):
@@ -72,8 +73,13 @@ class BuildExt(build_ext):
                 opts.append("-rdynamic")
             if test_switch("-O3") and "-O3" not in self.compiler.compiler_so:
                 opts.append("-O3")
+            if test_switch("-fopenmp"):
+                has_omp = True
+                opts.append("-fopenmp")
         for ext in self.extensions:
             ext.extra_compile_args = opts
+            if has_omp:
+                ext.extra_link_args = ["-fopenmp"]
         super().build_extensions()
 
 
