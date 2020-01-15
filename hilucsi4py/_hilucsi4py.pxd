@@ -46,12 +46,12 @@ cdef inline void factorize_M(
     size_t m,
     hilucsi.Options *opts,
 ) nogil:
-    M.get().factorize(n, &rowptr[0], &colind[0], &vals[0], m, opts[0])
+    M.get().factorize_raw(n, &rowptr[0], &colind[0], &vals[0], m, opts[0])
 
 
 # solve
 cdef inline void solve_M(M_type M, size_t n, double[::1] b, double[::1] x) nogil:
-    M.get().solve(n, &b[0], &x[0])
+    M.get().solve_raw(n, &b[0], &x[0])
 
 
 cdef inline pair[int, size_t] solve_KSP(
@@ -66,7 +66,7 @@ cdef inline pair[int, size_t] solve_KSP(
     bool with_init_guess,
     bool verbose
 ) nogil:
-    return solver.get().solve(
+    return solver.get().solve_raw(
         n,
         &rowptr[0],
         &colind[0],

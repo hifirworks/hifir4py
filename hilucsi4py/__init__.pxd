@@ -87,12 +87,17 @@ cdef extern from 'hilucsi4py.hpp' namespace 'hilucsi' nogil:
         size_t stats(const size_t entry) except +
 
         # computing routine
-        void factorize(const size_t n, const int *indptr, const int *indices,
-                       const double *vals, const size_t m0,
-                       const Options &opts) except +
+        void factorize_raw(const size_t n, const int *indptr, const int *indices,
+                           const double *vals, const size_t m0,
+                           const Options &opts) except +
 
         # solving routine
-        void solve(const size_t n, const double *b, double *x) except +
+        void solve_raw(const size_t n, const double *b, double *x) except +
+
+        # solving with iterative refinement
+        void solve_raw(const size_t n, const int *rowptr, const int *colind,
+                       const double *vals, const double *b, const size_t N,
+                       double *x)
 
     cdef cppclass PyHILUCSI_Mixed:
         PyHILUCSI_Mixed()
@@ -106,12 +111,17 @@ cdef extern from 'hilucsi4py.hpp' namespace 'hilucsi' nogil:
         size_t stats(const size_t entry) except +
 
         # computing routine
-        void factorize(const size_t n, const int *indptr, const int *indices,
-                       const double *vals, const size_t m0,
-                       const Options &opts) except +
+        void factorize_raw(const size_t n, const int *indptr, const int *indices,
+                           const double *vals, const size_t m0,
+                           const Options &opts) except +
 
         # solving routine
-        void solve(const size_t n, const double *b, double *x) except +
+        void solve_raw(const size_t n, const double *b, double *x) except +
+
+        # solving with iterative refinement
+        void solve_raw(const size_t n, const int *rowptr, const int *colind,
+                       const double *vals, const double *b, const size_t N,
+                       double *x)
 
     cdef cppclass KspSolver:
         void set_rtol(const double v)
@@ -129,11 +139,11 @@ cdef extern from 'hilucsi4py.hpp' namespace 'hilucsi' nogil:
         void check_pars()
         int get_resids_length()
         void get_resids(double *r)
-        pair[int, size_t] solve(const size_t n, const int *rowptr,
-                                const int *colind, const double *vals,
-                                const double *b, double *x, const int kernel,
-                                const bool with_init_guess,
-                                const bool verbose) except +
+        pair[int, size_t] solve_raw(const size_t n, const int *rowptr,
+                                    const int *colind, const double *vals,
+                                    const double *b, double *x, const int kernel,
+                                    const bool with_init_guess,
+                                    const bool verbose) except +
 
     cdef cppclass PyFGMRES(KspSolver):
         PyFGMRES()
@@ -207,5 +217,5 @@ cdef extern from 'hilucsi4py.hpp' namespace 'hilucsi::ksp' nogil:
     
     cdef enum:
         TRADITION
-        JACOBI
-        CHEBYSHEV_JACOBI
+        ITERATIVE_REFINE
+        CHEBYSHEV_ITERATIVE_REFINE

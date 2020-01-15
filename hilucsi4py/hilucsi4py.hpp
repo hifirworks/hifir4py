@@ -121,9 +121,9 @@ class PyHILUCSI : public DefaultHILUCSI {
   using base = DefaultHILUCSI;
 
   // factorize crs
-  inline void factorize(const size_type n, const int *rowptr, const int *colind,
-                        const double *vals, const size_type m0,
-                        const Options &opts) {
+  inline void factorize_raw(const size_type n, const int *rowptr,
+                            const int *colind, const double *vals,
+                            const size_type m0, const Options &opts) {
     constexpr static bool WRAP = true;
 
     py_crs_type A(n, n, const_cast<int *>(rowptr), const_cast<int *>(colind),
@@ -131,15 +131,27 @@ class PyHILUCSI : public DefaultHILUCSI {
     base::factorize(A, m0, opts);
   }
 
-  using base::solve;
-
   // overload solve
-  inline void solve(const size_type n, const double *b, double *x) const {
+  inline void solve_raw(const size_type n, const double *b, double *x) const {
     constexpr static bool WRAP = true;
 
     const array_type B(n, const_cast<double *>(b), WRAP);
     array_type       X(n, x, WRAP);
-    solve(B, X);
+    base::solve(B, X);
+  }
+
+  // overload solve with iterative refinement
+  inline void solve_raw(const size_type n, const int *rowptr, const int *colind,
+                        const double *vals, const double *b, const size_type N,
+                        double *x) const {
+    constexpr static bool WRAP = true;
+
+    const array_type  B(n, const_cast<double *>(b), WRAP);
+    array_type        X(n, x, WRAP);
+    const py_crs_type A(n, n, const_cast<int *>(rowptr),
+                        const_cast<int *>(colind), const_cast<double *>(vals),
+                        WRAP);
+    base::solve(A, B, N, X);
   }
 };
 
@@ -149,9 +161,9 @@ class PyHILUCSI_Mixed : public HILUCSI<float, int> {
   using base = HILUCSI<float, int>;
 
   // factorize crs
-  inline void factorize(const size_type n, const int *rowptr, const int *colind,
-                        const double *vals, const size_type m0,
-                        const Options &opts) {
+  inline void factorize_raw(const size_type n, const int *rowptr,
+                            const int *colind, const double *vals,
+                            const size_type m0, const Options &opts) {
     constexpr static bool WRAP = true;
 
     py_crs_type A(n, n, const_cast<int *>(rowptr), const_cast<int *>(colind),
@@ -159,15 +171,27 @@ class PyHILUCSI_Mixed : public HILUCSI<float, int> {
     base::factorize(A, m0, opts);
   }
 
-  using base::solve;
-
   // overload solve
-  inline void solve(const size_type n, const double *b, double *x) const {
+  inline void solve_raw(const size_type n, const double *b, double *x) const {
     constexpr static bool WRAP = true;
 
     const py_array_type B(n, const_cast<double *>(b), WRAP);
     py_array_type       X(n, x, WRAP);
-    solve(B, X);
+    base::solve(B, X);
+  }
+
+  // overload solve with iterative refinement
+  inline void solve_raw(const size_type n, const int *rowptr, const int *colind,
+                        const double *vals, const double *b, const size_type N,
+                        double *x) const {
+    constexpr static bool WRAP = true;
+
+    const py_array_type B(n, const_cast<double *>(b), WRAP);
+    py_array_type       X(n, x, WRAP);
+    const py_crs_type   A(n, n, const_cast<int *>(rowptr),
+                          const_cast<int *>(colind), const_cast<double *>(vals),
+                          WRAP);
+    base::solve(A, B, N, X);
   }
 };
 
@@ -190,12 +214,10 @@ class KspSolver {
   virtual void                      check_pars()                     = 0;
   virtual int                       get_resids_length() const        = 0;
   virtual void                      get_resids(double *r) const      = 0;
-  virtual std::pair<int, size_type> solve(const size_type n, const int *rowptr,
-                                          const int *colind, const double *vals,
-                                          const double *b, double *x,
-                                          const int  kernel,
-                                          const bool with_init_guess,
-                                          const bool verbose) const  = 0;
+  virtual std::pair<int, size_type> solve_raw(
+      const size_type n, const int *rowptr, const int *colind,
+      const double *vals, const double *b, double *x, const int kernel,
+      const bool with_init_guess, const bool verbose) const = 0;
 };
 
 // using a template base for Ksp solver
@@ -232,7 +254,7 @@ class KspAdapt : public Ksp<MType, ValueType>, public KspSolver {
 
   virtual void check_pars() override final { base::_check_pars(); }
 
-  virtual std::pair<int, size_type> solve(
+  virtual std::pair<int, size_type> solve_raw(
       const size_type n, const int *rowptr, const int *colind,
       const double *vals, const double *b, double *x, const int kernel,
       const bool with_init_guess, const bool verbose) const override final {
