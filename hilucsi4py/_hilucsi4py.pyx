@@ -577,6 +577,48 @@ cdef class HILUCSI:
         solve_M[PyHILUCSI_ptr](self.M, n, bb, xx)
         return xx
 
+    def solve_iter_refine(
+        self,
+        *args,
+        shape=None,
+        N=2,
+        x=None,
+    ):
+        """Access the preconditioner with iterative refinement
+
+        Parameters
+        ----------
+        *args : positional arguments
+            either three array of CRS or scipy sparse matrix, and rhs b
+        shape : tuple, optional
+            if input is three array, then this must be given
+        N : int, optional
+            explicit iteration steps, default is 2
+        x : np.ndarray, optional
+            for efficiency purpose, one can provide the buffer
+
+        Returns
+        -------
+        np.ndarray
+            Solution vector
+        """
+        cdef:
+            size_t n
+            size_t NN
+        rowptr, colind, vals, b = convert_to_crs_and_b(*args, shape=shape)
+        if x is None:
+            xx = np.empty_like(b)
+        else:
+            xx = _as_value_array(x)
+        if xx.shape != b.shape:
+            raise ValueError('inconsistent x and b')
+        if N <= 0:
+            N = 1
+        n = b.size
+        NN = N
+        solve_M_IR[PyHILUCSI_ptr](self.M, n, rowptr, colind, vals, b, NN, xx)
+        return xx
+
 
 cdef class HILUCSI_Mixed:
     """Python HILUCSI object with single precision core
@@ -717,6 +759,50 @@ cdef class HILUCSI_Mixed:
         solve_M[PyHILUCSI_Mixed_ptr](self.M, n, bb, xx)
         return xx
 
+    def solve_iter_refine(
+        self,
+        *args,
+        shape=None,
+        N=2,
+        x=None,
+    ):
+        """Access the preconditioner with iterative refinement
+
+        Parameters
+        ----------
+        *args : positional arguments
+            either three array of CRS or scipy sparse matrix, and rhs b
+        shape : tuple, optional
+            if input is three array, then this must be given
+        N : int, optional
+            explicit iteration steps, default is 2
+        x : np.ndarray, optional
+            for efficiency purpose, one can provide the buffer
+
+        Returns
+        -------
+        np.ndarray
+            Solution vector
+        """
+        cdef:
+            size_t n
+            size_t NN
+        rowptr, colind, vals, b = convert_to_crs_and_b(*args, shape=shape)
+        if x is None:
+            xx = np.empty_like(b)
+        else:
+            xx = _as_value_array(x)
+        if xx.shape != b.shape:
+            raise ValueError('inconsistent x and b')
+        if N <= 0:
+            N = 1
+        n = b.size
+        NN = N
+        solve_M_IR[PyHILUCSI_Mixed_ptr](
+            self.M, n, rowptr, colind, vals, b, NN, xx
+        )
+        return xx
+
 
 class KSP_Error(RuntimeError):
     """Base class of KSP error exceptions"""
@@ -766,12 +852,12 @@ def _handle_kernel(str kernel):
     cdef int kn
     if kernel == "tradition":
         kn = hilucsi.TRADITION
-    elif kernel == "jacobi":
-        kn = hilucsi.JACOBI
-    elif kernel == "chebyshev-jacobi":
-        kn = hilucsi.CHEBYSHEV_JACOBI
+    elif kernel == "iter-refine":
+        kn = hilucsi.ITERATIVE_REFINE
+    elif kernel == "chebyshev-ir":
+        kn = hilucsi.CHEBYSHEV_ITERATIVE_REFINE
     else:
-        choices = ("tradition", "jacobi", "chebyshev-jacobi")
+        choices = ("tradition", "iter-refine", "chebyshev-ir")
         raise KSP_InvalidArgumentsError(
             'invalid kernel {}, must be {}'.format(kernel, choices))
     return kn
@@ -782,11 +868,12 @@ cdef class KspSolver:
 
     The KSP base implementation has three modes (kernels): the first one is the
     ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
-    preconditioner; the second one is ``jacobi`` fashion, where
-    :math:`\boldsymbol{M}` is treated as the "diagonal" term in Jacobi iteration
-    combining with the input matrix :math:`\boldsymbol{A}`; finally, the last
-    fashion is an extension to ``jacobi`` with Chebyshev acceleration, which
-    requires estimations of the largest and smallest eigenvalues.
+    preconditioner; the second one is ``iter-refine`` fashion, where
+    :math:`\boldsymbol{M}` is treated as the splitted term in stationary
+    iteration combining with the input matrix :math:`\boldsymbol{A}`; finally,
+    the last fashion is an extension to ``iter-refine`` with Chebyshev
+    acceleration, which requires estimations of the largest and smallest
+    eigenvalues.
     """
     cdef KSP_ptr solver
 
@@ -828,7 +915,7 @@ cdef class KspSolver:
 
     @property
     def inner_steps(self):
-        """int: maximum inner iterations for Jacobi-like inner iterations (4)"""
+        """int: maximum inner iterations for IR-like inner iterations (4)"""
         return deref(self.solver).get_inner_steps()
 
     @inner_steps.setter
@@ -882,7 +969,7 @@ cdef class KspSolver:
             if input is three array, then this must be given
         x : np.ndarray, optional
             for efficiency purpose, one can provide the buffer
-        kernel : {"tradition","jacobi","chebyshev-jacobi"}, optional
+        kernel : {"tradition","iter-refine","chebyshev-ir"}, optional
             kernel for preconditioning, default is traditional
         init_guess : bool, optional
             if ``False`` (default), then set initial state to be zeros
@@ -950,13 +1037,14 @@ cdef class KspSolver:
 cdef class FGMRES(KspSolver):
     r"""Flexible GMRES implementation with rhs preconditioner
 
-    The FMGRES implementation has three modes (kernels): the first one is the
+    The FGMRES implementation has three modes (kernels): the first one is the
     ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
-    preconditioner; the second one is ``jacobi`` fashion, where
-    :math:`\boldsymbol{M}` is treated as the "diagonal" term in Jacobi iteration
-    combining with the input matrix :math:`\boldsymbol{A}`; finally, the last
-    fashion is an extension to ``jacobi`` with Chebyshev acceleration, which
-    requires estimations of the largest and smallest eigenvalues.
+    preconditioner; the second one is ``iter-refine`` fashion, where
+    :math:`\boldsymbol{M}` is treated as the splitted term in stationary
+    iteration combining with the input matrix :math:`\boldsymbol{A}`; finally,
+    the last fashion is an extension to ``iter-refine`` with Chebyshev
+    acceleration, which requires estimations of the largest and smallest
+    eigenvalues.
 
     Parameters
     ----------
@@ -969,7 +1057,7 @@ cdef class FGMRES(KspSolver):
     restart : int, optional
         restart in GMRES, default is 30
     max_inners : int, optional
-        maximum inner iterations used in Jacobi style kernel, default is 4
+        maximum inner iterations used in IR style kernel, default is 2
     lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
     lamb2 : float, optional
@@ -994,7 +1082,7 @@ cdef class FGMRES(KspSolver):
         rtol=1e-6,
         restart=30,
         maxit=500,
-        max_inners=4,
+        max_inners=2,
         **kw
     ):
         pass
@@ -1005,7 +1093,7 @@ cdef class FGMRES(KspSolver):
         double rtol=1e-6,
         int restart=30,
         int maxit=500,
-        int max_inners=4,
+        int max_inners=2,
         **kw
     ):
         self.solver.reset(new hilucsi.PyFGMRES())
@@ -1062,13 +1150,14 @@ cdef class FGMRES(KspSolver):
 cdef class FGMRES_Mixed(KspSolver):
     r"""Flexible GMRES implementation with rhs preconditioner (mixed precision)
 
-    The FMGRES implementation has three modes (kernels): the first one is the
+    The FGMRES implementation has three modes (kernels): the first one is the
     ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
-    preconditioner; the second one is ``jacobi`` fashion, where
-    :math:`\boldsymbol{M}` is treated as the "diagonal" term in Jacobi iteration
-    combining with the input matrix :math:`\boldsymbol{A}`; finally, the last
-    fashion is an extension to ``jacobi`` with Chebyshev acceleration, which
-    requires estimations of the largest and smallest eigenvalues.
+    preconditioner; the second one is ``iter-refine`` fashion, where
+    :math:`\boldsymbol{M}` is treated as the splitted term in stationary
+    iteration combining with the input matrix :math:`\boldsymbol{A}`; finally,
+    the last fashion is an extension to ``iter-refine`` with Chebyshev
+    acceleration, which requires estimations of the largest and smallest
+    eigenvalues.
 
     Parameters
     ----------
@@ -1081,7 +1170,7 @@ cdef class FGMRES_Mixed(KspSolver):
     restart : int, optional
         restart in GMRES, default is 30
     max_inners : int, optional
-        maximum inner iterations used in Jacobi style kernel, default is 4
+        maximum inner iterations used in IR style kernel, default is 2
     lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
     lamb2 : float, optional
@@ -1106,7 +1195,7 @@ cdef class FGMRES_Mixed(KspSolver):
         rtol=1e-6,
         restart=30,
         maxit=500,
-        max_inners=4,
+        max_inners=2,
         **kw
     ):
         pass
@@ -1117,7 +1206,7 @@ cdef class FGMRES_Mixed(KspSolver):
         double rtol=1e-6,
         int restart=30,
         int maxit=500,
-        int max_inners=4,
+        int max_inners=2,
         **kw
     ):
         self.solver.reset(new hilucsi.PyFGMRES_Mixed())
@@ -1174,13 +1263,14 @@ cdef class FGMRES_Mixed(KspSolver):
 cdef class FQMRCGSTAB(KspSolver):
     r"""Flexible QMRCGSTAB implementation with rhs preconditioner
 
-    The FQMRCGSTAB implementation has three modes (kernels): the first one is
-    the ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
-    preconditioner; the second one is ``jacobi`` fashion, where
-    :math:`\boldsymbol{M}` is treated as the "diagonal" term in Jacobi iteration
-    combining with the input matrix :math:`\boldsymbol{A}`; finally, the last
-    fashion is an extension to ``jacobi`` with Chebyshev acceleration, which
-    requires estimations of the largest and smallest eigenvalues.
+    The FQMRCGSTAB implementation has three modes (kernels): the first one is the
+    ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
+    preconditioner; the second one is ``iter-refine`` fashion, where
+    :math:`\boldsymbol{M}` is treated as the splitted term in stationary
+    iteration combining with the input matrix :math:`\boldsymbol{A}`; finally,
+    the last fashion is an extension to ``iter-refine`` with Chebyshev
+    acceleration, which requires estimations of the largest and smallest
+    eigenvalues.
 
     Parameters
     ----------
@@ -1191,7 +1281,7 @@ cdef class FQMRCGSTAB(KspSolver):
     restart : int, optional
         restart in GMRES, default is 30
     innersteps : int, optional
-        maximum inner iterations used in Jacobi style kernel, default is 4
+        maximum inner iterations used in IR style kernel, default is 4
     lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
     lamb2 : float, optional
@@ -1210,7 +1300,7 @@ cdef class FQMRCGSTAB(KspSolver):
     >>> x = solver.solve(A, np.random.rand(10))
     """
 
-    def __init__(self, M=None, rtol=1e-6, maxit=500, innersteps=4, **kw):
+    def __init__(self, M=None, rtol=1e-6, maxit=500, innersteps=2, **kw):
         pass
 
     def __cinit__(
@@ -1218,7 +1308,7 @@ cdef class FQMRCGSTAB(KspSolver):
         HILUCSI M=None,
         double rtol=1e-6,
         int maxit=500,
-        int innersteps=4,
+        int innersteps=2,
         **kw
     ):
         self.solver.reset(new hilucsi.PyFQMRCGSTAB())
@@ -1256,13 +1346,14 @@ cdef class FQMRCGSTAB(KspSolver):
 cdef class FQMRCGSTAB_Mixed(KspSolver):
     r"""Flexible QMRCGSTAB implementation with rhs preconditioner (mixed-prec)
 
-    The FQMRCGSTAB implementation has three modes (kernels): the first one is
-    the ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
-    preconditioner; the second one is ``jacobi`` fashion, where
-    :math:`\boldsymbol{M}` is treated as the "diagonal" term in Jacobi iteration
-    combining with the input matrix :math:`\boldsymbol{A}`; finally, the last
-    fashion is an extension to ``jacobi`` with Chebyshev acceleration, which
-    requires estimations of the largest and smallest eigenvalues.
+    The FQMRCGSTAB implementation has three modes (kernels): the first one is the
+    ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
+    preconditioner; the second one is ``iter-refine`` fashion, where
+    :math:`\boldsymbol{M}` is treated as the splitted term in stationary
+    iteration combining with the input matrix :math:`\boldsymbol{A}`; finally,
+    the last fashion is an extension to ``iter-refine`` with Chebyshev
+    acceleration, which requires estimations of the largest and smallest
+    eigenvalues.
 
     Parameters
     ----------
@@ -1273,7 +1364,7 @@ cdef class FQMRCGSTAB_Mixed(KspSolver):
     maxit : int, optional
         maximum iterations, default is 500
     innersteps : int, optional
-        maximum inner iterations used in Jacobi style kernel, default is 4
+        maximum inner iterations used in IR style kernel, default is 2
     lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
     lamb2 : float, optional
@@ -1292,7 +1383,7 @@ cdef class FQMRCGSTAB_Mixed(KspSolver):
     >>> x = solver.solve(A, np.random.rand(10))
     """
 
-    def __init__(self, M=None, rtol=1e-6, maxit=500, innersteps=4, **kw):
+    def __init__(self, M=None, rtol=1e-6, maxit=500, innersteps=2, **kw):
         pass
 
     def __cinit__(
@@ -1300,7 +1391,7 @@ cdef class FQMRCGSTAB_Mixed(KspSolver):
         HILUCSI_Mixed M=None,
         double rtol=1e-6,
         int maxit=500,
-        int innersteps=4,
+        int innersteps=2,
         **kw,
     ):
         self.solver.reset(new hilucsi.PyFQMRCGSTAB_Mixed())
@@ -1338,13 +1429,14 @@ cdef class FQMRCGSTAB_Mixed(KspSolver):
 cdef class FBICGSTAB(KspSolver):
     r"""Flexible BICGSTAB implementation with rhs preconditioner
 
-    The FBICGSTAB implementation has three modes (kernels): the first one is
-    the ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
-    preconditioner; the second one is ``jacobi`` fashion, where
-    :math:`\boldsymbol{M}` is treated as the "diagonal" term in Jacobi iteration
-    combining with the input matrix :math:`\boldsymbol{A}`; finally, the last
-    fashion is an extension to ``jacobi`` with Chebyshev acceleration, which
-    requires estimations of the largest and smallest eigenvalues.
+    The FBICGSTAB implementation has three modes (kernels): the first one is the
+    ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
+    preconditioner; the second one is ``iter-refine`` fashion, where
+    :math:`\boldsymbol{M}` is treated as the splitted term in stationary
+    iteration combining with the input matrix :math:`\boldsymbol{A}`; finally,
+    the last fashion is an extension to ``iter-refine`` with Chebyshev
+    acceleration, which requires estimations of the largest and smallest
+    eigenvalues.
 
     Parameters
     ----------
@@ -1355,7 +1447,7 @@ cdef class FBICGSTAB(KspSolver):
     restart : int, optional
         restart in GMRES, default is 30
     innersteps : int, optional
-        maximum inner iterations used in Jacobi style kernel, default is 4
+        maximum inner iterations used in IR style kernel, default is 2
     lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
     lamb2 : float, optional
@@ -1374,7 +1466,7 @@ cdef class FBICGSTAB(KspSolver):
     >>> x = solver.solve(A, np.random.rand(10))
     """
 
-    def __init__(self, M=None, rtol=1e-6, maxit=500, innersteps=4, **kw):
+    def __init__(self, M=None, rtol=1e-6, maxit=500, innersteps=2, **kw):
         pass
 
     def __cinit__(
@@ -1382,7 +1474,7 @@ cdef class FBICGSTAB(KspSolver):
         HILUCSI M=None,
         double rtol=1e-6,
         int maxit=500,
-        int innersteps=4,
+        int innersteps=2,
         **kw,
     ):
         self.solver.reset(new hilucsi.PyFBICGSTAB())
@@ -1420,13 +1512,14 @@ cdef class FBICGSTAB(KspSolver):
 cdef class FBICGSTAB_Mixed(KspSolver):
     r"""Flexible BICGSTAB implementation with rhs preconditioner (mixed-prec)
 
-    The FBICGSTAB implementation has three modes (kernels): the first one is
-    the ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
-    preconditioner; the second one is ``jacobi`` fashion, where
-    :math:`\boldsymbol{M}` is treated as the "diagonal" term in Jacobi iteration
-    combining with the input matrix :math:`\boldsymbol{A}`; finally, the last
-    fashion is an extension to ``jacobi`` with Chebyshev acceleration, which
-    requires estimations of the largest and smallest eigenvalues.
+    The FBICGSTAB implementation has three modes (kernels): the first one is the
+    ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
+    preconditioner; the second one is ``iter-refine`` fashion, where
+    :math:`\boldsymbol{M}` is treated as the splitted term in stationary
+    iteration combining with the input matrix :math:`\boldsymbol{A}`; finally,
+    the last fashion is an extension to ``iter-refine`` with Chebyshev
+    acceleration, which requires estimations of the largest and smallest
+    eigenvalues.
 
     Parameters
     ----------
@@ -1437,7 +1530,7 @@ cdef class FBICGSTAB_Mixed(KspSolver):
     maxit : int, optional
         maximum iterations, default is 500
     innersteps : int, optional
-        maximum inner iterations used in Jacobi style kernel, default is 4
+        maximum inner iterations used in IR style kernel, default is 2
     lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
     lamb2 : float, optional
@@ -1456,7 +1549,7 @@ cdef class FBICGSTAB_Mixed(KspSolver):
     >>> x = solver.solve(A, np.random.rand(10))
     """
 
-    def __init__(self, M=None, rtol=1e-6, maxit=500, innersteps=4, **kw):
+    def __init__(self, M=None, rtol=1e-6, maxit=500, innersteps=2, **kw):
         pass
 
     def __cinit__(
@@ -1464,7 +1557,7 @@ cdef class FBICGSTAB_Mixed(KspSolver):
         HILUCSI_Mixed M=None,
         double rtol=1e-6,
         int maxit=500,
-        int innersteps=4,
+        int innersteps=2,
         **kw,
     ):
         self.solver.reset(new hilucsi.PyFBICGSTAB_Mixed())
@@ -1502,13 +1595,14 @@ cdef class FBICGSTAB_Mixed(KspSolver):
 cdef class TGMRESR(KspSolver):
     r"""Truncated GMRESR implementation with rhs preconditioner
 
-    The TMGRESR implementation has three modes (kernels): the first one is the
+    The TGMRESR implementation has three modes (kernels): the first one is the
     ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
-    preconditioner; the second one is ``jacobi`` fashion, where
-    :math:`\boldsymbol{M}` is treated as the "diagonal" term in Jacobi iteration
-    combining with the input matrix :math:`\boldsymbol{A}`; finally, the last
-    fashion is an extension to ``jacobi`` with Chebyshev acceleration, which
-    requires estimations of the largest and smallest eigenvalues.
+    preconditioner; the second one is ``iter-refine`` fashion, where
+    :math:`\boldsymbol{M}` is treated as the splitted term in stationary
+    iteration combining with the input matrix :math:`\boldsymbol{A}`; finally,
+    the last fashion is an extension to ``iter-refine`` with Chebyshev
+    acceleration, which requires estimations of the largest and smallest
+    eigenvalues.
 
     Parameters
     ----------
@@ -1521,7 +1615,7 @@ cdef class TGMRESR(KspSolver):
     cycle : int, optional
         truncated cycle in GMRESR, default is 10
     max_inners : int, optional
-        maximum inner iterations used in Jacobi style kernel, default is 4
+        maximum inner iterations used in IR style kernel, default is 2
     lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
     lamb2 : float, optional
@@ -1546,7 +1640,7 @@ cdef class TGMRESR(KspSolver):
         rtol=1e-6,
         cycle=10,
         maxit=500,
-        max_inners=4,
+        max_inners=2,
         **kw
     ):
         pass
@@ -1557,7 +1651,7 @@ cdef class TGMRESR(KspSolver):
         double rtol=1e-6,
         int cycle=10,
         int maxit=500,
-        int max_inners=4,
+        int max_inners=2,
         **kw
     ):
         self.solver.reset(new hilucsi.PyFGMRES())
@@ -1614,13 +1708,14 @@ cdef class TGMRESR(KspSolver):
 cdef class TGMRESR_Mixed(KspSolver):
     r"""Truncated GMRESR implementation with rhs preconditioner (mixed precision)
 
-    The FMGRES implementation has three modes (kernels): the first one is the
+    The TGMRESR implementation has three modes (kernels): the first one is the
     ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
-    preconditioner; the second one is ``jacobi`` fashion, where
-    :math:`\boldsymbol{M}` is treated as the "diagonal" term in Jacobi iteration
-    combining with the input matrix :math:`\boldsymbol{A}`; finally, the last
-    fashion is an extension to ``jacobi`` with Chebyshev acceleration, which
-    requires estimations of the largest and smallest eigenvalues.
+    preconditioner; the second one is ``iter-refine`` fashion, where
+    :math:`\boldsymbol{M}` is treated as the splitted term in stationary
+    iteration combining with the input matrix :math:`\boldsymbol{A}`; finally,
+    the last fashion is an extension to ``iter-refine`` with Chebyshev
+    acceleration, which requires estimations of the largest and smallest
+    eigenvalues.
 
     Parameters
     ----------
@@ -1633,7 +1728,7 @@ cdef class TGMRESR_Mixed(KspSolver):
     cycle : int, optional
         truncated cycle in GMRESR, default is 10
     max_inners : int, optional
-        maximum inner iterations used in Jacobi style kernel, default is 4
+        maximum inner iterations used in IR style kernel, default is 2
     lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
     lamb2 : float, optional
@@ -1652,7 +1747,7 @@ cdef class TGMRESR_Mixed(KspSolver):
     >>> x = solver.solve(A, np.random.rand(10))
     """
 
-    def __init__(self, M=None, rtol=1e-6, cycle=10, maxit=500, max_inners=4, **kw):
+    def __init__(self, M=None, rtol=1e-6, cycle=10, maxit=500, max_inners=2, **kw):
         pass
 
     def __cinit__(
@@ -1661,7 +1756,7 @@ cdef class TGMRESR_Mixed(KspSolver):
         double rtol=1e-6,
         int cycle=10,
         int maxit=500,
-        int max_inners=4,
+        int max_inners=2,
         **kw,
     ):
         self.solver.reset(new hilucsi.PyFGMRES_Mixed())

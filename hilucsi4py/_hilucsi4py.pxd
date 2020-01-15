@@ -54,6 +54,21 @@ cdef inline void solve_M(M_type M, size_t n, double[::1] b, double[::1] x) nogil
     M.get().solve_raw(n, &b[0], &x[0])
 
 
+# solve with iterative refinement
+cdef inline void solve_M_IR(
+    M_type M,
+    size_t n,
+    int[::1] rowptr,
+    int[::1] colind,
+    double[::1] vals,
+    double[::1] b,
+    size_t N,
+    double[::1] x,
+) nogil:
+    M.get().solve_raw(n, &rowptr[0], &colind[0], &vals[0], &b[0], N, &x[0])
+
+
+# ksp solve
 cdef inline pair[int, size_t] solve_KSP(
     KSP_ptr solver,
     size_t n,
