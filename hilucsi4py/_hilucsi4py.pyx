@@ -33,6 +33,7 @@ them in Python3. This module includes:
 """
 
 from cython.operator cimport dereference as deref
+from cpython.ref cimport PyObject, Py_XINCREF
 from libcpp cimport bool
 from libcpp.string cimport string as std_string
 from libc.stddef cimport size_t
@@ -67,6 +68,17 @@ from .utils import (
     _as_value_array,
     _is_binary,
 )
+
+
+# convert raw data to numpy array (wrapping data), used in nullspace filter
+cdef inline raw2ndarray(void *x, size_t n):
+    cdef double *dx = <double *> x
+    return np.asarray(<double[:n]> dx)
+
+
+# call Python function, used in nullspace filter
+cdef inline void call_user(void *f, object x):
+    (<object>f)(x)
 
 
 # whenever added new external objects, make sure update this table
@@ -619,6 +631,89 @@ cdef class HILUCSI:
         solve_M_IR[PyHILUCSI_ptr](self.M, n, rowptr, colind, vals, b, NN, xx)
         return xx
 
+    def set_nsp_filter(self, *args):
+        """Enable (right) null space filter
+
+        One of the nice features in HILUCSI (including HILUCSI4PY) is to
+        enabling (right) nullspace filter (eliminator) in preconditioner to
+        solve singular systems.
+
+        Parameters
+        ----------
+        arg1 : {None, int, callback}, optional
+            First argument (later)
+        arg2 : int, optional
+            Second argument (later)
+
+        Notes
+        -----
+        This function have the following usages:
+
+        1. Set up a commonly used constant mode filter,
+        2. Set up a constant mode filter within a certain range,
+        3. Set up a filter via a user callback, and
+        4. Unset the filter.
+
+        For 1), this function takes no input argument. For 2), one or two
+        arguments of integer can be passed, where the first one defines the
+        starting index of the constant mode, whereas the pass-of-end position
+        for the second one. For 3), the user needs to define a callback with
+        a single input and output argument, where the input is guaranteed to
+        be a 1D numpy ndarray, upon output, the user need to filter the null
+        space components inplace to that vector. For 4), simply supplying
+        ``None`` will remove the null space filter.
+
+        Examples
+        --------
+        Given a preconditioner
+
+        >>> M = create_M()
+
+        We first consider the usage of 1)
+
+        >>> M.set_nsp_filter()
+
+        For 2)
+
+        >>> M.set_nsp_filter(0)  # equiv as above
+        >>> M.set_nsp_filter(0, 2)  # constant modes exist in [0, 2)
+
+        For 3)
+
+        >>> def my_filter(v):
+        ...     v[:] -= np.sum(v) / v.size  # equiv as filter the constant mode
+        ...
+        >>> M.set_nsp_filter(my_filter)
+
+        For 4)
+
+        >>> M.set_nsp_filter(None)  # remove nullspace filter.
+        """
+        cdef:
+            hilucsi.PyNspFilter *py_nsp  # python null space filter
+            size_t start
+            size_t end
+        if len(args) == 0:
+            # simple constant mode
+            deref(self.M).nsp.reset(new hilucsi.PyNspFilter())
+            return
+        if args[0] is None:
+            deref(self.M).nsp.reset()
+            return
+        if callable(args[0]):
+            deref(self.M).nsp.reset(new hilucsi.PyNspFilter())
+            py_nsp = <hilucsi.PyNspFilter *>deref(self.M).nsp.get()
+            py_nsp.array_encoder = &raw2ndarray
+            py_nsp.nsp_invoker = &call_user
+            py_nsp.user_call = <PyObject*>args[0]
+            Py_XINCREF(py_nsp.user_call)  # increment the reference
+            py_nsp.enable_or()
+            return
+        start = args[0]
+        end = <size_t>-1
+        if len(args) > 1:
+            end = args[1]
+        deref(self.M).nsp.reset(new hilucsi.PyNspFilter(start, end))
 
 cdef class HILUCSI_Mixed:
     """Python HILUCSI object with single precision core
@@ -803,6 +898,90 @@ cdef class HILUCSI_Mixed:
         )
         return xx
 
+    def set_nsp_filter(self, *args):
+        """Enable (right) null space filter
+
+        One of the nice features in HILUCSI (including HILUCSI4PY) is to
+        enabling (right) nullspace filter (eliminator) in preconditioner to
+        solve singular systems.
+
+        Parameters
+        ----------
+        arg1 : {None, int, callback}, optional
+            First argument (later)
+        arg2 : int, optional
+            Second argument (later)
+
+        Notes
+        -----
+        This function have the following usages:
+
+        1. Set up a commonly used constant mode filter,
+        2. Set up a constant mode filter within a certain range,
+        3. Set up a filter via a user callback, and
+        4. Unset the filter.
+
+        For 1), this function takes no input argument. For 2), one or two
+        arguments of integer can be passed, where the first one defines the
+        starting index of the constant mode, whereas the pass-of-end position
+        for the second one. For 3), the user needs to define a callback with
+        a single input and output argument, where the input is guaranteed to
+        be a 1D numpy ndarray, upon output, the user need to filter the null
+        space components inplace to that vector. For 4), simply supplying
+        ``None`` will remove the null space filter.
+
+        Examples
+        --------
+        Given a preconditioner
+
+        >>> M = create_M(mixed=True)
+
+        We first consider the usage of 1)
+
+        >>> M.set_nsp_filter()
+
+        For 2)
+
+        >>> M.set_nsp_filter(0)  # equiv as above
+        >>> M.set_nsp_filter(0, 2)  # constant modes exist in [0, 2)
+
+        For 3)
+
+        >>> def my_filter(v):
+        ...     v[:] -= np.sum(v) / v.size  # equiv as filter the constant mode
+        ...
+        >>> M.set_nsp_filter(my_filter)
+
+        For 4)
+
+        >>> M.set_nsp_filter(None)  # remove nullspace filter.
+        """
+        cdef:
+            hilucsi.PyNspFilter *py_nsp  # python null space filter
+            size_t start
+            size_t end
+        if len(args) == 0:
+            # simple constant mode
+            deref(self.M).nsp.reset(new hilucsi.PyNspFilter())
+            return
+        if args[0] is None:
+            deref(self.M).nsp.reset()
+            return
+        if callable(args[0]):
+            deref(self.M).nsp.reset(new hilucsi.PyNspFilter())
+            py_nsp = <hilucsi.PyNspFilter *>deref(self.M).nsp.get()
+            py_nsp.array_encoder = &raw2ndarray
+            py_nsp.nsp_invoker = &call_user
+            py_nsp.user_call = <PyObject*>args[0]
+            Py_XINCREF(py_nsp.user_call)  # increment the reference
+            py_nsp.enable_or()
+            return
+        start = args[0]
+        end = <size_t>-1
+        if len(args) > 1:
+            end = args[1]
+        deref(self.M).nsp.reset(new hilucsi.PyNspFilter(start, end))
+
 
 class KSP_Error(RuntimeError):
     """Base class of KSP error exceptions"""
@@ -882,7 +1061,7 @@ cdef class KspSolver:
         """Indicated if or not the solver is mixed precision enabled"""
         name = cls.__name__.split("_")
         if len(name) > 1:
-            return name[-1] == "Mixed"
+            return name[1] == "Mixed"
         return False
 
     def __init__(self):
@@ -957,7 +1136,8 @@ cdef class KspSolver:
         x=None,
         kernel="tradition",
         init_guess=False,
-        verbose=True
+        verbose=True,
+        throw_on_error=True,
     ):
         """Sovle the rhs solution
 
@@ -974,7 +1154,9 @@ cdef class KspSolver:
         init_guess : bool, optional
             if ``False`` (default), then set initial state to be zeros
         verbose : bool, optional
-            if `True`` (default), then enable verbose printing
+            if ``True`` (default), then enable verbose printing
+        throw_on_error: bool, optional
+            if ``True`` (default), then raise exceptions
 
         Returns
         -------
@@ -982,6 +1164,8 @@ cdef class KspSolver:
             Solution array
         iters : int
             Number of iterations used
+        flag : int
+            Flag, if `throw_on_error` is ``False``, then this will be returned
 
         Raises
         ------
@@ -1022,8 +1206,9 @@ cdef class KspSolver:
             init_guess,
             verbose,
         )
-        _handle_flag(info.first)
-        return xx, info.second
+        if throw_on_error:
+            _handle_flag(info.first)
+        return xx, info.second, info.first
 
     def __str__(self):
         fmt = self.__class__.__name__
