@@ -59,7 +59,7 @@
 
 // now, include the hilucsi code generator
 #include <HILUCSI.hpp>
-
+#include "hilucsi4py_nsp.hpp"
 namespace hilucsi {
 
 // types
