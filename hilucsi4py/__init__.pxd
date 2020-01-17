@@ -30,14 +30,27 @@ from libc.stdint cimport uint64_t
 from libcpp.vector cimport vector
 from libcpp.memory cimport shared_ptr
 from libcpp.utility cimport pair
+from cpython.ref cimport PyObject
 
 
-cdef extern from 'hilucsi4py.hpp' namespace 'hilucsi' nogil:
+cdef extern from "hilucsi4py.hpp" namespace "hilucsi":
+    # nullspace eliminator with gil
+    cdef cppclass PyNspFilter:
+        PyNspFilter()
+        PyNspFilter(const size_t start)
+        PyNspFilter(const size_t start, const size_t end)
+        object (*array_encoder)(void *, size_t)
+        void (*nsp_invoker)(void *, object)
+        PyObject *user_call
+        void enable_or()
+
+
+cdef extern from "hilucsi4py.hpp" namespace "hilucsi" nogil:
     # two necessary utilities
     std_string version()
     bool warn_flag(const int)
 
-    # wrap options, we don't care about the attibutes
+    # wrap options, we don't care about the attributes
     cdef enum:
         VERBOSE_NONE
         VERBOSE_INFO
@@ -98,6 +111,7 @@ cdef extern from 'hilucsi4py.hpp' namespace 'hilucsi' nogil:
         void solve_raw(const size_t n, const int *rowptr, const int *colind,
                        const double *vals, const double *b, const size_t N,
                        double *x)
+        shared_ptr[PyNspFilter] nsp
 
     cdef cppclass PyHILUCSI_Mixed:
         PyHILUCSI_Mixed()
@@ -122,6 +136,7 @@ cdef extern from 'hilucsi4py.hpp' namespace 'hilucsi' nogil:
         void solve_raw(const size_t n, const int *rowptr, const int *colind,
                        const double *vals, const double *b, const size_t N,
                        double *x)
+        shared_ptr[PyNspFilter] nsp
 
     cdef cppclass KspSolver:
         void set_rtol(const double v)
