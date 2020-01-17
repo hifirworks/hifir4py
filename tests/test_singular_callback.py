@@ -27,3 +27,16 @@ def test_singular_callback():
     x, _, _ = ksp.solve(A, b)
     res = np.linalg.norm(A * x - b) / np.linalg.norm(b)
     assert res <= 1e-6
+
+
+def test_singular_callback_mixed():
+    A, p_left = loadmat("singular.mat")["A"], loadmat("singular.mat")["p"].reshape(-1)
+    ksp = create_ksp("fgmres", mixed=True)
+    ksp.M.factorize(A)
+    b = np.random.rand(A.shape[0])
+    # filter out the left nullspace in b
+    b -= (p_left.dot(b) / p_left.dot(p_left)) * p_left
+    ksp.M.set_nsp_filter(nsp_filter)  # enable constant mode filter
+    x, _, _ = ksp.solve(A, b)
+    res = np.linalg.norm(A * x - b) / np.linalg.norm(b)
+    assert res <= 1e-6
