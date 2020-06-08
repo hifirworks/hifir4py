@@ -1208,6 +1208,7 @@ cdef class KspSolver:
         )
         if throw_on_error:
             _handle_flag(info.first)
+            return xx, info.second
         return xx, info.second, info.first
 
     def __str__(self):
