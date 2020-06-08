@@ -14,7 +14,7 @@ def test_tgmresr():
     solver = TGMRESR()
     solver.M.factorize(A)
     b = A * np.ones(10)
-    x, _, _ = solver.solve(A, b)
+    x, _ = solver.solve(A, b)
     res = np.linalg.norm(x - 1) / np.linalg.norm(b)
     print(res, solver.resids[-1])
     assert res <= 1e-6

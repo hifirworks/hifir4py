@@ -24,7 +24,7 @@ def test_singular_callback():
     # filter out the left nullspace in b
     b -= (p_left.dot(b) / p_left.dot(p_left)) * p_left
     ksp.M.set_nsp_filter(nsp_filter)  # enable constant mode filter
-    x, _, _ = ksp.solve(A, b)
+    x, _ = ksp.solve(A, b)
     res = np.linalg.norm(A * x - b) / np.linalg.norm(b)
     assert res <= 1e-6
 
@@ -37,6 +37,6 @@ def test_singular_callback_mixed():
     # filter out the left nullspace in b
     b -= (p_left.dot(b) / p_left.dot(p_left)) * p_left
     ksp.M.set_nsp_filter(nsp_filter)  # enable constant mode filter
-    x, _, _ = ksp.solve(A, b)
+    x, _ = ksp.solve(A, b)
     res = np.linalg.norm(A * x - b) / np.linalg.norm(b)
     assert res <= 1e-6
