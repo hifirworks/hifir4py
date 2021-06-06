@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 ###############################################################################
-#                 This file is part of HILUCSI4PY project                     #
+#                 This file is part of HIFIR4PY project                       #
 ###############################################################################
 
 import os
@@ -11,18 +11,18 @@ from Cython.Build import cythonize
 
 
 def is_debug():
-    flag = os.environ.get("HILUCSI4PY_DEBUG", None)
+    flag = os.environ.get("HIFIR4PY_DEBUG", None)
     if flag is None:
         return False
     return flag.lower() not in ("0", "no", "off", "false")
 
 
-_hilucsi4py_debug = is_debug()
+_hifir4py_debug = is_debug()
 
-incs = [".", os.path.join("hilucsi", "src")]
+incs = [".", os.path.join("hifir", "src")]
 
 # configure libraries
-_lapack_lib = os.environ.get("HILUCSI_LAPACK_LIB", "-llapack")
+_lapack_lib = os.environ.get("HIFIR_LAPACK_LIB", "-llapack")
 _lapack_libs = _lapack_lib.split(" ")
 for i, _l in enumerate(_lapack_libs):
     _lapack_libs[i] = _l[2:]
@@ -30,7 +30,7 @@ libs = _lapack_libs
 
 # configure library paths
 lib_dirs = None
-_lapack_path = os.environ.get("HILUCSI_LAPACK_LIB_PATH", "")
+_lapack_path = os.environ.get("HIFIR_LAPACK_LIB_PATH", "")
 if _lapack_path:
     lib_dirs = [_lapack_path]
 rpath = None if lib_dirs is None else lib_dirs
@@ -45,7 +45,7 @@ class BuildExt(build_ext):
 
     def build_extensions(self):
         self._remove_flag("-Wstrict-prototypes")
-        if _hilucsi4py_debug:
+        if _hifir4py_debug:
             self._remove_flag("-DNDEBUG")
 
         cpl_type = self.compiler.compiler_type
@@ -83,7 +83,7 @@ class BuildExt(build_ext):
         super().build_extensions()
 
 
-_pyx = glob.glob(os.path.join("hilucsi4py", "*.pyx"))
+_pyx = glob.glob(os.path.join("hifir4py", "*.pyx"))
 exts = []
 
 for f in _pyx:
@@ -102,6 +102,6 @@ for f in _pyx:
     )
 
 _opts = {"language_level": 3, "embedsignature": True}
-if not _hilucsi4py_debug:
+if not _hifir4py_debug:
     _opts.update({"wraparound": False, "boundscheck": False})
 exts = cythonize(exts, compiler_directives=_opts)

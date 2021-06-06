@@ -1,10 +1,10 @@
-Python3 Interface for HILUCSI
+Python3 Interface for HIFIR
 =============================
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 
-Welcome to the Python3 interface of HILUCSI package--- *hilucsi4py*. The Python
+Welcome to the Python3 interface of HIFIR package--- *hifir4py*. The Python
 interface is implemented with Cython, and the Cython interface is also
 available to use.
 
@@ -24,22 +24,22 @@ Installation
     with the Python module. Be aware that the LAPACK is dynamically linked
     against with! This mode is Okay for shipping binary wheels. In the
     future, once we want to ship the source, we can simply move the submodule
-    `hilucsi` under `hilucsi4py`.
+    `hifir` under `hifir4py`.
 
 You need to configure linking against LAPACK by setting the environment
-variable ``HILUCSI_LAPACK_LIB``, and the default is ``-llapack``. If you
+variable ``HIFIR_LAPACK_LIB``, and the default is ``-llapack``. If you
 have a specific library path to LAPACK, you then need to set the environment
-variable ``HILUCSI_LAPACK_LIB_PATH``.
+variable ``HIFIR_LAPACK_LIB_PATH``.
 
 To sum up, the following environment variables can be configured
 
-1. ``HILUCSI_LAPACK_LIB``, default is ``-llapack``
-2. ``HILUCSI_LAPACK_LIB_PATH``, default is empty
+1. ``HIFIR_LAPACK_LIB``, default is ``-llapack``
+2. ``HIFIR_LAPACK_LIB_PATH``, default is empty
 
 The default installation
 ````````````````````````
 
-The following command assumes ``HILUCSI.hpp`` is located in system include
+The following command assumes ``HIFIR.hpp`` is located in system include
 path or current directory. In addition, ``liblapack.so`` can be found in system
 library path or under ``LIBRARY_PATH``.
 
@@ -55,8 +55,8 @@ shows how to link MKL (on Ubuntu).
 
 .. code:: console
 
-    export HILUCSI_LAPACK_LIB="-lmkl_intel_lp64 -lmkl_sequential -lmkl_core"
-    export HILUCSI_LAPACK_LIB_PATH=/opt/intel/mkl/lib/intel64
+    export HIFIR_LAPACK_LIB="-lmkl_intel_lp64 -lmkl_sequential -lmkl_core"
+    export HIFIR_LAPACK_LIB_PATH=/opt/intel/mkl/lib/intel64
     pip3 install . --user
 
 Contacts

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 ###############################################################################
-#                 This file is part of HILUCSI4PY project                     #
+#                 This file is part of HIFIR4PY project                       #
 ###############################################################################
 
 from setuptools import setup
