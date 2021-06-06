@@ -29,6 +29,6 @@ tests
 foo*
 bar*
 spam*
-hilucsi4py/*.cpp
-hilucsi4py/*.h
+hifir4py/*.cpp
+hifir4py/*.h
 docs/README.rst
