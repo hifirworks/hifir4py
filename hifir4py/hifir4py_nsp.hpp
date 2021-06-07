@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-//              This file is part of HILUCSI4PY project                      //
+//              This file is part of HIFIR4PY project                        //
 //                                                                           //
 //     Copyright (C) 2020 NumGeom Group at Stony Brook University            //
 //                                                                           //
@@ -19,16 +19,16 @@
 
 // Authors:
 //  Qiao,
-// For enabling nullspace eliminator in Python via HILUCSI4PY
+// For enabling nullspace eliminator in Python via HIFIR4PY
 
-#ifndef _HILUCSI_PYTHON_HILUCSI4PY_NSP_HPP
-#define _HILUCSI_PYTHON_HILUCSI4PY_NSP_HPP
+#ifndef _HIFIR_PYTHON_HIFIR4PY_NSP_HPP
+#define _HIFIR_PYTHON_HIFIR4PY_NSP_HPP
 
 #include <Python.h>
 
-#include <HILUCSI.hpp>
+#include <HIF.hpp>
 
-namespace hilucsi {
+namespace hif {
 
 class PyNspFilter : public NspFilter {
  public:
@@ -55,12 +55,12 @@ class PyNspFilter : public NspFilter {
 
   virtual void user_filter(void *x, const std::size_t n,
                            const char dtype) const override {
-    if (dtype != 'd') hilucsi_error("must be double precision");
-    if (!array_encoder) hilucsi_error("missing array encoder");
-    if (!nsp_invoker) hilucsi_error("missing nsp invoker");
-    if (!user_call) hilucsi_error("missing user callback");
+    if (dtype != 'd') hif_error("must be double precision");
+    if (!array_encoder) hif_error("missing array encoder");
+    if (!nsp_invoker) hif_error("missing nsp invoker");
+    if (!user_call) hif_error("missing user callback");
     PyObject *ndarray = array_encoder(x, n);
-    if (!ndarray) hilucsi_error("failed to convert ndarray");
+    if (!ndarray) hif_error("failed to convert ndarray");
     nsp_invoker(user_call, ndarray);
     Py_XDECREF(ndarray);  // decrement the reference counter
   }
@@ -69,6 +69,6 @@ class PyNspFilter : public NspFilter {
   inline void enable_or() { _type = NspFilter::USER_OR; }
 };
 
-}  // namespace hilucsi
+}  // namespace hif
 
-#endif  // _HILUCSI_PYTHON_HILUCSI4PY_NSP_HPP
+#endif  // _HIFIR_PYTHON_HIFIR4PY_NSP_HPP

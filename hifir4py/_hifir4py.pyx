@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 ###############################################################################
-#                 This file is part of HILUCSI4PY project                     #
+#                 This file is part of HIFIR4PY project                       #
 #                                                                             #
 #    Copyright (C) 2019 NumGeom Group at Stony Brook University               #
 #                                                                             #
@@ -17,17 +17,17 @@
 #    You should have received a copy of the GNU General Public License        #
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.   #
 ###############################################################################
-"""This is the main module contains the implementation of ``hilucsi4py``
+"""This is the main module contains the implementation of ``hifir4py``
 
-The module wraps the internal components defined in HILUCSI and safely brings
+The module wraps the internal components defined in HIF and safely brings
 them in Python3. This module includes:
 
 1. multilevel preconditioner,
 2. control parameters,
 3. KSP solver(s)
-4. IO with native HILUCSI binary and ASCII files
+4. IO with native HIF binary and ASCII files
 
-.. module:: hilucsi4py._hilucsi4py
+.. module:: hifir4py._hifir4py
     :noindex:
 .. moduleauthor:: Qiao Chen <qiao.chen@stonybrook.edu>
 """
@@ -40,23 +40,23 @@ from libc.stddef cimport size_t
 from libc.stdint cimport uint64_t
 from libcpp.vector cimport vector
 from libcpp.utility cimport pair
-cimport hilucsi4py as hilucsi
+cimport hifir4py as hif
 
 
-cdef extern from 'hilucsi4py.hpp' namespace 'hilucsi::internal' nogil:
+cdef extern from "hifir4py.hpp" namespace 'hif::internal' nogil:
     # using an internal var to determine the data types of options
     # true for double, flase for int
     cdef enum:
-        _HILUCSI_TOTAL_OPTIONS
-    bool option_dtypes[_HILUCSI_TOTAL_OPTIONS]
+        _HIF_TOTAL_OPTIONS
+    bool option_dtypes[_HIF_TOTAL_OPTIONS]
 
 
-ctypedef hilucsi.PyFGMRES *fgmres_ptr
-ctypedef hilucsi.PyFGMRES_Mixed *fgmres_mixed_ptr
-ctypedef hilucsi.PyFQMRCGSTAB *fqmrcgstab_ptr
-ctypedef hilucsi.PyFQMRCGSTAB_Mixed *fqmrcgstab_mixed_ptr
-ctypedef hilucsi.PyFBICGSTAB *fbicgstab_ptr
-ctypedef hilucsi.PyFBICGSTAB_Mixed *fbicgstab_mixed_ptr
+ctypedef hif.PyGMRES *fgmres_ptr
+ctypedef hif.PyGMRES_Mixed *fgmres_mixed_ptr
+ctypedef hif.PyFQMRCGSTAB *fqmrcgstab_ptr
+ctypedef hif.PyFQMRCGSTAB_Mixed *fqmrcgstab_mixed_ptr
+ctypedef hif.PyFBICGSTAB *fbicgstab_ptr
+ctypedef hif.PyFBICGSTAB_Mixed *fbicgstab_mixed_ptr
 
 
 import os
@@ -92,12 +92,15 @@ __all__ = [
     "REORDER_AUTO",
     "REORDER_AMD",
     "REORDER_RCM",
-    "Options",
-    "read_hilucsi",
-    "write_hilucsi",
-    "query_hilucsi_info",
-    "HILUCSI",
-    "HILUCSI_Mixed",
+    "PIVOTING_OFF",
+    "PIVOTING_ON",
+    "PIVOTING_AUTO",
+    "Params",
+    "read_hifir",
+    "write_hifir",
+    "query_hifir_info",
+    "HIF",
+    "HIF_Mixed",
     "KSP_Error",
     "KSP_InvalidArgumentsError",
     "KSP_MSolveError",
@@ -105,8 +108,8 @@ __all__ = [
     "KSP_StagnatedError",
     "KSP_BreakDownError",
     "KspSolver",
-    "FGMRES",
-    "FGMRES_Mixed",
+    "GMRES",
+    "GMRES_Mixed",
     "FQMRCGSTAB",
     "FQMRCGSTAB_Mixed",
     "FBICGSTAB",
@@ -117,38 +120,43 @@ __all__ = [
 
 # utilities
 def _version():
-    return hilucsi.version().decode("utf-8")
+    return hif.version().decode("utf-8")
 
 
 def _is_warning():
-    return hilucsi.warn_flag(-1)
+    return hif.warn_flag(-1)
 
 
 def _enable_warning():
-    hilucsi.warn_flag(1)
+    hif.warn_flag(1)
 
 
 def _disable_warning():
-    hilucsi.warn_flag(0)
+    hif.warn_flag(0)
 
 
 # Options
 # redefine the verbose options, not a good idea but okay for now
-VERBOSE_NONE = hilucsi.VERBOSE_NONE
-VERBOSE_INFO = hilucsi.VERBOSE_INFO
-VERBOSE_PRE = hilucsi.VERBOSE_PRE
-VERBOSE_FAC = hilucsi.VERBOSE_FAC
-VERBOSE_PRE_TIME = hilucsi.VERBOSE_PRE_TIME
+VERBOSE_NONE = hif.VERBOSE_NONE
+VERBOSE_INFO = hif.VERBOSE_INFO
+VERBOSE_PRE = hif.VERBOSE_PRE
+VERBOSE_FAC = hif.VERBOSE_FAC
+VERBOSE_PRE_TIME = hif.VERBOSE_PRE_TIME
 
 # reorderingoptions
-REORDER_OFF = hilucsi.REORDER_OFF
-REORDER_AUTO = hilucsi.REORDER_AUTO
-REORDER_AMD = hilucsi.REORDER_AMD
-REORDER_RCM = hilucsi.REORDER_RCM
+REORDER_OFF = hif.REORDER_OFF
+REORDER_AUTO = hif.REORDER_AUTO
+REORDER_AMD = hif.REORDER_AMD
+REORDER_RCM = hif.REORDER_RCM
+
+# pivoting strategy
+PIVOTING_OFF = hif.PIVOTING_OFF
+PIVOTING_ON = hif.PIVOTING_ON
+PIVOTING_AUTO = hif.PIVOTING_AUTO
 
 # determine total number of parameters
 def _get_opt_info():
-    raw_info = hilucsi.opt_repr(hilucsi.get_default_options()).decode("utf-8")
+    raw_info = hif.opt_repr(hif.get_default_options()).decode("utf-8")
     # split with newline
     info = list(filter(None, raw_info.split("\n")))
     return [x.split()[0].strip() for x in info]
@@ -157,7 +165,7 @@ def _get_opt_info():
 _OPT_LIST = _get_opt_info()
 
 
-cdef class Options:
+cdef class Params:
     """Python interface of control parameters
 
     By default, each control parameter object is initialized with default
@@ -173,17 +181,17 @@ cdef class Options:
     Examples
     --------
 
-    >>> from hilucsi4py import *
-    >>> opts = Options()  # default parameters
-    >>> opts["verbose"] = VERBOSE_INFO | VERBOSE_FAC
-    >>> opts.reset()  # reset to default parameters
+    >>> from hifir4py import *
+    >>> params = Params()  # default parameters
+    >>> params["verbose"] = VERBOSE_INFO | VERBOSE_FAC
+    >>> params.reset()  # reset to default parameters
     """
-    cdef hilucsi.Options opts
+    cdef hif.Options params
     cdef int __idx
 
     @staticmethod
-    def option_list():
-        """Get a supported options list
+    def param_list():
+        """Get a supported parameter list
 
         Returns
         -------
@@ -197,14 +205,14 @@ cdef class Options:
         pass
 
     def __cinit__(self, **kw):
-        self.opts = hilucsi.get_default_options()
+        self.params = hif.get_default_options()
         self.__idx = 0
         for k, v in kw.items():
             self.__setitem__(k, v)
 
     def reset(self):
         """This function will reset all options to their default values"""
-        self.opts = hilucsi.get_default_options()
+        self.params = hif.get_default_options()
 
     def enable_verbose(self, int flag):
         """Enable a verbose flag
@@ -214,15 +222,15 @@ cdef class Options:
         flag : int
             enable a log flag, defined with variables starting with ``VERBOSE``
         """
-        hilucsi.enable_verbose(<int> flag, self.opts)
+        hif.enable_verbose(<int> flag, self.params)
 
     @property
     def verbose(self):
         """str: get the verbose flag(s)"""
-        return hilucsi.get_verbose(self.opts).decode("utf-8")
+        return hif.get_verbose(self.params).decode("utf-8")
 
     def __str__(self):
-        return hilucsi.opt_repr(self.opts).decode("utf-8")
+        return hif.opt_repr(self.params).decode("utf-8")
 
     def __repr__(self):
         return self.__str__()
@@ -246,7 +254,7 @@ cdef class Options:
         cdef:
             double vv = v
             std_string nm = opt_name.encode("utf-8")
-        if hilucsi.set_option_attr[double](nm, vv, self.opts):
+        if hif.set_option_attr[double](nm, vv, self.params):
             raise KeyError("unknown option name {}".format(opt_name))
 
     def __getitem__(self, str opt_name):
@@ -307,8 +315,8 @@ cdef class Options:
 
 
 # I/O
-def read_hilucsi(str filename, *, is_bin=None):
-    """Read a HILUCSI file
+def read_hifir(str filename, *, is_bin=None):
+    """Read a HIFIR file
 
     Parameters
     ----------
@@ -328,11 +336,11 @@ def read_hilucsi(str filename, *, is_bin=None):
     shape : tuple
         Matrix size shape, i.e., (nrows, ncols)
     m : int
-        Size of leading symmetric block
+        Size of leading symmetric block  (deprecated)
 
     See Also
     --------
-    write_hilucsi : write native formats
+    write_hifir : write native formats
     """
     if not os.path.isfile(filename):
         raise FileNotFoundError
@@ -350,7 +358,7 @@ def read_hilucsi(str filename, *, is_bin=None):
         isbin = _is_binary(filename)
     else:
         isbin = <bool> is_bin
-    hilucsi.read_hilucsi(fn, nrows, ncols, m, indptr, indices, vals, isbin)
+    hif.read_hifir(fn, nrows, ncols, m, indptr, indices, vals, isbin)
     return (
         _as_index_array(indptr),
         _as_index_array(indices),
@@ -361,7 +369,7 @@ def read_hilucsi(str filename, *, is_bin=None):
 
 
 
-cdef inline void _write_hilucsi(
+cdef inline void _write_hifir(
     str filename,
     int[::1] rowptr,
     int[::1] colind,
@@ -374,12 +382,12 @@ cdef inline void _write_hilucsi(
     cdef:
         std_string fn = filename.encode("utf-8")
         bool isbin = is_bin
-    hilucsi.write_hilucsi(fn, nrows, ncols, &rowptr[0], &colind[0], &vals[0],
+    hif.write_hifir(fn, nrows, ncols, &rowptr[0], &colind[0], &vals[0],
         m, isbin)
 
 
-def write_hilucsi(str filename, *args, shape=None, m=0, is_bin=True):
-    """Write data to HILUCSI file formats
+def write_hifir(str filename, *args, shape=None, m=0, is_bin=True):
+    """Write data to HIFIR file formats
 
     Parameters
     ----------
@@ -390,13 +398,13 @@ def write_hilucsi(str filename, *args, shape=None, m=0, is_bin=True):
     shape : ``None`` or tuple
         if input is three array, then this must be given
     m : int (optional)
-        leading symmetric block
+        leading symmetric block (deprecated)
     is_bin : bool (optional)
         if ``True`` (default), then assume binary file format
 
     See Also
     --------
-    read_hilucsi : read native formats
+    read_hifir : read native formats
     """
     # essential checkings to avoid segfault
     cdef:
@@ -406,11 +414,11 @@ def write_hilucsi(str filename, *args, shape=None, m=0, is_bin=True):
     rowptr, colind, vals = convert_to_crs(*args, shape=shape)
     assert len(rowptr), 'cannot write empty matrix'
     n = len(rowptr) - 1
-    _write_hilucsi(filename, rowptr, colind, vals, n, n, m0, isbin)
+    _write_hifir(filename, rowptr, colind, vals, n, n, m0, isbin)
 
 
-def query_hilucsi_info(str filename, *, is_bin=None):
-    """Read a HILUCSI file and only query its information
+def query_hifir_info(str filename, *, is_bin=None):
+    """Read a HIFIR file and only query its information
 
     Parameters
     ----------
@@ -452,17 +460,17 @@ def query_hilucsi_info(str filename, *, is_bin=None):
         isbin = _is_binary(filename)
     else:
         isbin = <bool> is_bin
-    hilucsi.query_hilucsi_info(fn, is_row, is_c, is_double, is_real, nrows,
+    hif.query_hifir_info(fn, is_row, is_c, is_double, is_real, nrows,
         ncols, nnz, m, isbin)
     return is_row, is_c, is_double, is_real, nrows, ncols, nnz, m
 
 
-cdef class HILUCSI:
-    """Python HILUCSI object
+cdef class HIF:
+    """Python HIF object
 
     The interfaces remain the same as the original user object, i.e.
-    `hilucsi::DefaultHILUCSI`. However, we significantly the parameters by
-    hiding the needs of `hilucsi::CRS`, `hilucsi::CCS`, and `hilucsi::Array`.
+    `hif::DefaultHIF`. However, we significantly the parameters by
+    hiding the needs of `hif::CRS`, `hif::CCS`, and `hif::Array`.
     Therefore, the interface is very generic and easily adapted to any other
     Python modules without the hassle of complete object types.
     
@@ -470,13 +478,13 @@ cdef class HILUCSI:
     --------
 
     >>> from scipy.sparse import random
-    >>> from hilucsi4py import *
+    >>> from hifir4py import *
     >>> A = random(10, 10, 0.5)
-    >>> M = HILUCSI()
+    >>> M = HIF()
     >>> M.factorize(A)
     """
-    cdef PyHILUCSI_ptr M
-    cdef hilucsi.Options opts
+    cdef PyHIF_ptr M
+    cdef hif.Options params
 
     @staticmethod
     def is_mixed():
@@ -489,8 +497,8 @@ cdef class HILUCSI:
         pass
 
     def __cinit__(self):
-        self.M.reset(new hilucsi.PyHILUCSI())
-        self.opts = hilucsi.get_default_options()
+        self.M.reset(new hif.PyHIF())
+        self.params = hif.get_default_options()
 
     def empty(self):
         """Check if or not the builder is empty"""
@@ -507,19 +515,34 @@ cdef class HILUCSI:
         return deref(self.M).nnz()
 
     @property
-    def nnz_EF(self):
+    def nnz_ef(self):
         """int: total number of nonzeros in Es and Fs"""
-        return deref(self.M).nnz_EF()
+        return deref(self.M).nnz_ef()
 
     @property
-    def nnz_LDU(self):
+    def nnz_ldu(self):
         """int: total number of nonzeros in LDU fators"""
-        return deref(self.M).nnz_LDU()
+        return deref(self.M).nnz_ldu()
 
     @property
-    def size(self):
-        """int: system size"""
+    def nrows(self):
+        """int: system size of rows"""
         return deref(self.M).nrows()
+
+    @property
+    def ncols(self):
+        """int: system size of columns"""
+        return deref(self.M).ncols()
+
+    @property
+    def rank(self):
+        """int: numerical rank"""
+        return deref(self.M).rank()
+
+    @property
+    def last_rank(self):
+        """int: final Schur complement rank"""
+        return deref(self.M).last_rank()
 
     def stats(self, int entry):
         """Get the statistics information
@@ -531,7 +554,11 @@ cdef class HILUCSI:
         """
         return deref(self.M).stats(entry)
 
-    def factorize(self, *args, shape=None, m=0, Options opts=None):
+    def clear(self):
+        """Clear internal memory usage"""
+        deref(self.M).clear()
+
+    def factorize(self, *args, shape=None, Params params=None):
         """Compute/build the preconditioner
 
         Parameters
@@ -539,26 +566,26 @@ cdef class HILUCSI:
         *args : positional arguments
             either three array of CRS or scipy sparse matrix
         shape : tuple, optional
-            if input is three array, then this must be given
-        m0 : int, optional
-            leading symmetric block, default is 0
-        opts : Options, optional
+            if input is three arrays of CRS, then this must be given
+        params : Params, optional
             control parameters, if ``None``, then use the default values
 
         See Also
         --------
-        solve : solve for inv(HILUCSI)*x
+        solve : solve for inv(HIF)*x
         """
         cdef:
             size_t n
+            size_t m
         rowptr, colind, vals = convert_to_crs(*args, shape=shape)
         assert len(rowptr), "cannot deal with empty matrix"
-        if opts is not None:
-            self.opts = opts.opts
+        if params is not None:
+            self.params = params.params
         n = len(rowptr) - 1
-        factorize_M[PyHILUCSI_ptr](self.M, n, rowptr, colind, vals, m, &self.opts)
+        m = 0
+        factorize_M[PyHIF_ptr](self.M, n, rowptr, colind, vals, m, &self.params)
 
-    def solve(self, b, x=None):
+    def solve(self, b, x=None, trans=False, r=0):
         r"""Core routine to use the preconditioner
 
         Essentially, this routine is to perform
@@ -569,8 +596,12 @@ cdef class HILUCSI:
         ----------
         b : array_like
             right-hand side parameters
-        x : array_like output buffer, optional
-            solution vector
+        x : array_like, optional
+            solution vector, output buffer
+        trans : bool, optional
+            transpose/Hermitian flag, default is False
+        r : int, optional
+            final Schur complement rank
 
         Returns
         -------
@@ -586,15 +617,17 @@ cdef class HILUCSI:
             xx = _as_value_array(x)
         assert xx.shape == bb.shape, "inconsistent x and b"
         n = bb.size
-        solve_M[PyHILUCSI_ptr](self.M, n, bb, xx)
+        solve_M[PyHIF_ptr](self.M, n, bb, xx, trans, r)
         return xx
 
-    def solve_iter_refine(
+    def hifir(
         self,
         *args,
         shape=None,
         N=2,
         x=None,
+        trans=False,
+        r=-1,
     ):
         """Access the preconditioner with iterative refinement
 
@@ -608,6 +641,10 @@ cdef class HILUCSI:
             explicit iteration steps, default is 2
         x : np.ndarray, optional
             for efficiency purpose, one can provide the buffer
+        trans : bool, optional
+            transpose/Hermitian flag, default is False
+        r : int, optional
+            final Schur complement rank
 
         Returns
         -------
@@ -628,13 +665,59 @@ cdef class HILUCSI:
             N = 1
         n = b.size
         NN = N
-        solve_M_IR[PyHILUCSI_ptr](self.M, n, rowptr, colind, vals, b, NN, xx)
+        solve_M_IR[PyHIF_ptr](
+            self.M,
+            n,
+            rowptr,
+            colind,
+            vals,
+            b,
+            NN,
+            xx,
+            trans,
+            r,
+        )
+        return xx
+
+    def mmultiply(self, b, x=None, trans=False, r=0):
+        r"""Core routine to use the preconditioner for matrix-vector
+
+        Essentially, this routine is to perform
+        :math:`\boldsymbol{x}=\boldsymbol{M}\boldsymbol{b}`, where
+        :math:`\boldsymbol{M}` is our MILU preconditioner.
+
+        Parameters
+        ----------
+        b : array_like
+            right-hand side parameters
+        x : array_like, optional
+            solution vector, output buffer
+        trans : bool, optional
+            transpose/Hermitian flag, default is False
+        r : int, optional
+            final Schur complement rank
+
+        Returns
+        -------
+        np.ndarray
+            Solution vector
+        """
+        cdef size_t n
+        bb = _as_value_array(b)
+        assert len(bb.shape) == 1
+        if x is None:
+            xx = np.empty_like(bb)
+        else:
+            xx = _as_value_array(x)
+        assert xx.shape == bb.shape, "inconsistent x and b"
+        n = bb.size
+        mmultiply_M[PyHIF_ptr](self.M, n, bb, xx, trans, r)
         return xx
 
     def set_nsp_filter(self, *args):
         """Enable (right) null space filter
 
-        One of the nice features in HILUCSI (including HILUCSI4PY) is to
+        One of the nice features in HIFIR (including HIFIR4PY) is to
         enabling (right) nullspace filter (eliminator) in preconditioner to
         solve singular systems.
 
@@ -690,19 +773,19 @@ cdef class HILUCSI:
         >>> M.set_nsp_filter(None)  # remove nullspace filter.
         """
         cdef:
-            hilucsi.PyNspFilter *py_nsp  # python null space filter
+            hif.PyNspFilter *py_nsp  # python null space filter
             size_t start
             size_t end
         if len(args) == 0:
             # simple constant mode
-            deref(self.M).nsp.reset(new hilucsi.PyNspFilter())
+            deref(self.M).nsp.reset(new hif.PyNspFilter())
             return
         if args[0] is None:
             deref(self.M).nsp.reset()
             return
         if callable(args[0]):
-            deref(self.M).nsp.reset(new hilucsi.PyNspFilter())
-            py_nsp = <hilucsi.PyNspFilter *>deref(self.M).nsp.get()
+            deref(self.M).nsp.reset(new hif.PyNspFilter())
+            py_nsp = <hif.PyNspFilter *>deref(self.M).nsp.get()
             py_nsp.array_encoder = &raw2ndarray
             py_nsp.nsp_invoker = &call_user
             py_nsp.user_call = <PyObject*>args[0]
@@ -713,14 +796,14 @@ cdef class HILUCSI:
         end = <size_t>-1
         if len(args) > 1:
             end = args[1]
-        deref(self.M).nsp.reset(new hilucsi.PyNspFilter(start, end))
+        deref(self.M).nsp.reset(new hif.PyNspFilter(start, end))
 
-cdef class HILUCSI_Mixed:
-    """Python HILUCSI object with single precision core
+cdef class HIF_Mixed:
+    """Python HIF object with single precision core
 
     The interfaces remain the same as the original user object, i.e.
-    `hilucsi::HILUCSI<float,int>`. However, we significantly the parameters by
-    hiding the needs of `hilucsi::CRS`, `hilucsi::CCS`, and `hilucsi::Array`.
+    `hif::HIF<float,int>`. However, we significantly the parameters by
+    hiding the needs of `hif::CRS`, `hif::CCS`, and `hif::Array`.
     Therefore, the interface is very generic and easily adapted to any other
     Python modules without the hassle of complete object types.
     
@@ -728,13 +811,13 @@ cdef class HILUCSI_Mixed:
     --------
 
     >>> from scipy.sparse import random
-    >>> from hilucsi4py import *
+    >>> from hifir4py import *
     >>> A = random(10, 10, 0.5)
-    >>> M = HILUCSI_Mixed()
+    >>> M = HIF_Mixed()
     >>> M.factorize(A)
     """
-    cdef PyHILUCSI_Mixed_ptr M
-    cdef hilucsi.Options opts
+    cdef PyHIF_Mixed_ptr M
+    cdef hif.Options params
 
     @staticmethod
     def is_mixed():
@@ -746,8 +829,8 @@ cdef class HILUCSI_Mixed:
         pass
 
     def __cinit__(self):
-        self.M.reset(new hilucsi.PyHILUCSI_Mixed())
-        self.opts = hilucsi.get_default_options()
+        self.M.reset(new hif.PyHIF_Mixed())
+        self.params = hif.get_default_options()
 
     def empty(self):
         """Check if or not the builder is empty"""
@@ -764,19 +847,34 @@ cdef class HILUCSI_Mixed:
         return deref(self.M).nnz()
 
     @property
-    def nnz_EF(self):
+    def nnz_ef(self):
         """int: total number of nonzeros in Es and Fs"""
-        return deref(self.M).nnz_EF()
+        return deref(self.M).nnz_ef()
 
     @property
-    def nnz_LDU(self):
+    def nnz_ldu(self):
         """int: total number of nonzeros in LDU fators"""
-        return deref(self.M).nnz_LDU()
+        return deref(self.M).nnz_ldu()
 
     @property
-    def size(self):
-        """int: system size"""
+    def nrows(self):
+        """int: system size of rows"""
         return deref(self.M).nrows()
+
+    @property
+    def ncols(self):
+        """int: system size of columns"""
+        return deref(self.M).ncols()
+
+    @property
+    def rank(self):
+        """int: numerical rank"""
+        return deref(self.M).rank()
+
+    @property
+    def last_rank(self):
+        """int: final Schur complement rank"""
+        return deref(self.M).last_rank()
 
     def stats(self, int entry):
         """Get the statistics information
@@ -788,7 +886,11 @@ cdef class HILUCSI_Mixed:
         """
         return deref(self.M).stats(entry)
 
-    def factorize(self, *args, shape=None, m=0, Options opts=None):
+    def clear(self):
+        """Clear internal memory usage"""
+        deref(self.M).clear()
+
+    def factorize(self, *args, shape=None, Params params=None):
         """Compute/build the preconditioner
 
         Parameters
@@ -796,34 +898,28 @@ cdef class HILUCSI_Mixed:
         *args : positional arguments
             either three array of CRS or scipy sparse matrix
         shape : tuple, optional
-            if input is three array, then this must be given
-        m0 : int
-            leading symmetric block
-        opts : Options, optional
+            if input is three arrays of CRS, then this must be given
+        params : Params, optional
             control parameters, if ``None``, then use the default values
 
         See Also
         --------
-        solve: solve for inv(HILUCSI)*x
+        solve : solve for inv(HIF)*x
         """
         cdef:
             size_t n
+            size_t m
         rowptr, colind, vals = convert_to_crs(*args, shape=shape)
         assert len(rowptr), "cannot deal with empty matrix"
+        if params is not None:
+            self.params = params.params
         n = len(rowptr) - 1
-        if opts is not None:
-            self.opts = opts.opts
-        factorize_M[PyHILUCSI_Mixed_ptr](
-            self.M,
-            n,
-            rowptr,
-            colind,
-            vals,
-            m,
-            &self.opts
+        m = 0
+        factorize_M[PyHIF_Mixed_ptr](
+            self.M, n, rowptr, colind, vals, m, &self.params
         )
 
-    def solve(self, b, x=None):
+    def solve(self, b, x=None, trans=False, r=0):
         r"""Core routine to use the preconditioner
 
         Essentially, this routine is to perform
@@ -834,8 +930,12 @@ cdef class HILUCSI_Mixed:
         ----------
         b : array_like
             right-hand side parameters
-        x : array_like output buffer, optional
-            solution vector
+        x : array_like, optional
+            solution vector, output buffer
+        trans : bool, optional
+            transpose/Hermitian flag, default is False
+        r : int, optional
+            final Schur complement rank
 
         Returns
         -------
@@ -851,15 +951,17 @@ cdef class HILUCSI_Mixed:
             xx = _as_value_array(x)
         assert xx.shape == bb.shape, "inconsistent x and b"
         n = bb.size
-        solve_M[PyHILUCSI_Mixed_ptr](self.M, n, bb, xx)
+        solve_M[PyHIF_Mixed_ptr](self.M, n, bb, xx, trans, r)
         return xx
 
-    def solve_iter_refine(
+    def hifir(
         self,
         *args,
         shape=None,
         N=2,
         x=None,
+        trans=False,
+        r=-1,
     ):
         """Access the preconditioner with iterative refinement
 
@@ -873,6 +975,10 @@ cdef class HILUCSI_Mixed:
             explicit iteration steps, default is 2
         x : np.ndarray, optional
             for efficiency purpose, one can provide the buffer
+        trans : bool, optional
+            transpose/Hermitian flag, default is False
+        r : int, optional
+            final Schur complement rank
 
         Returns
         -------
@@ -893,15 +999,59 @@ cdef class HILUCSI_Mixed:
             N = 1
         n = b.size
         NN = N
-        solve_M_IR[PyHILUCSI_Mixed_ptr](
-            self.M, n, rowptr, colind, vals, b, NN, xx
+        solve_M_IR[PyHIF_Mixed_ptr](
+            self.M,
+            n,
+            rowptr,
+            colind,
+            vals,
+            b,
+            NN,
+            xx,
+            trans,
+            r,
         )
+        return xx
+
+    def mmultiply(self, b, x=None, trans=False, r=0):
+        r"""Core routine to use the preconditioner for matrix-vector
+
+        Essentially, this routine is to perform
+        :math:`\boldsymbol{x}=\boldsymbol{M}\boldsymbol{b}`, where
+        :math:`\boldsymbol{M}` is our MILU preconditioner.
+
+        Parameters
+        ----------
+        b : array_like
+            right-hand side parameters
+        x : array_like, optional
+            solution vector, output buffer
+        trans : bool, optional
+            transpose/Hermitian flag, default is False
+        r : int, optional
+            final Schur complement rank
+
+        Returns
+        -------
+        np.ndarray
+            Solution vector
+        """
+        cdef size_t n
+        bb = _as_value_array(b)
+        assert len(bb.shape) == 1
+        if x is None:
+            xx = np.empty_like(bb)
+        else:
+            xx = _as_value_array(x)
+        assert xx.shape == bb.shape, "inconsistent x and b"
+        n = bb.size
+        mmultiply_M[PyHIF_Mixed_ptr](self.M, n, bb, xx, trans, r)
         return xx
 
     def set_nsp_filter(self, *args):
         """Enable (right) null space filter
 
-        One of the nice features in HILUCSI (including HILUCSI4PY) is to
+        One of the nice features in HIFIR (including HIFIR4PY) is to
         enabling (right) nullspace filter (eliminator) in preconditioner to
         solve singular systems.
 
@@ -957,19 +1107,19 @@ cdef class HILUCSI_Mixed:
         >>> M.set_nsp_filter(None)  # remove nullspace filter.
         """
         cdef:
-            hilucsi.PyNspFilter *py_nsp  # python null space filter
+            hif.PyNspFilter *py_nsp  # python null space filter
             size_t start
             size_t end
         if len(args) == 0:
             # simple constant mode
-            deref(self.M).nsp.reset(new hilucsi.PyNspFilter())
+            deref(self.M).nsp.reset(new hif.PyNspFilter())
             return
         if args[0] is None:
             deref(self.M).nsp.reset()
             return
         if callable(args[0]):
-            deref(self.M).nsp.reset(new hilucsi.PyNspFilter())
-            py_nsp = <hilucsi.PyNspFilter *>deref(self.M).nsp.get()
+            deref(self.M).nsp.reset(new hif.PyNspFilter())
+            py_nsp = <hif.PyNspFilter *>deref(self.M).nsp.get()
             py_nsp.array_encoder = &raw2ndarray
             py_nsp.nsp_invoker = &call_user
             py_nsp.user_call = <PyObject*>args[0]
@@ -980,7 +1130,7 @@ cdef class HILUCSI_Mixed:
         end = <size_t>-1
         if len(args) > 1:
             end = args[1]
-        deref(self.M).nsp.reset(new hilucsi.PyNspFilter(start, end))
+        deref(self.M).nsp.reset(new hif.PyNspFilter(start, end))
 
 
 class KSP_Error(RuntimeError):
@@ -1015,14 +1165,14 @@ class KSP_BreakDownError(KSP_Error):
 
 def _handle_flag(int flag):
     """handle KSP returned flag value"""
-    if flag != hilucsi.SUCCESS:
-        if flag == hilucsi.INVALID_ARGS:
+    if flag != hif.SUCCESS:
+        if flag == hif.INVALID_ARGS:
             raise KSP_InvalidArgumentsError
-        if flag == hilucsi.M_SOLVE_ERROR:
+        if flag == hif.M_SOLVE_ERROR:
             raise KSP_MSolveError
-        if flag == hilucsi.DIVERGED:
+        if flag == hif.DIVERGED:
             raise KSP_DivergedError
-        if flag == hilucsi.STAGNATED:
+        if flag == hif.STAGNATED:
             raise KSP_StagnatedError
         raise KSP_BreakDownError
 
@@ -1030,11 +1180,11 @@ def _handle_flag(int flag):
 def _handle_kernel(str kernel):
     cdef int kn
     if kernel == "tradition":
-        kn = hilucsi.TRADITION
+        kn = hif.TRADITION
     elif kernel == "iter-refine":
-        kn = hilucsi.ITERATIVE_REFINE
+        kn = hif.ITERATIVE_REFINE
     elif kernel == "chebyshev-ir":
-        kn = hilucsi.CHEBYSHEV_ITERATIVE_REFINE
+        kn = hif.CHEBYSHEV_ITERATIVE_REFINE
     else:
         choices = ("tradition", "iter-refine", "chebyshev-ir")
         raise KSP_InvalidArgumentsError(
@@ -1172,7 +1322,7 @@ cdef class KspSolver:
         KSP_InvalidArgumentsError
             invalid input arguments
         KSP_MSolveError
-            preconditioner solver error, see :func:`HILUCSI.solve`
+            preconditioner solver error, see :func:`HIF.solve`
         KSP_DivergedError
             iterations diverge due to exceeding :attr:`maxit`
         KSP_StagnatedError
@@ -1220,10 +1370,10 @@ cdef class KspSolver:
         return self.__str__()
 
 
-cdef class FGMRES(KspSolver):
+cdef class GMRES(KspSolver):
     r"""Flexible GMRES implementation with rhs preconditioner
 
-    The FGMRES implementation has three modes (kernels): the first one is the
+    The GMRES implementation has three modes (kernels): the first one is the
     ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
     preconditioner; the second one is ``iter-refine`` fashion, where
     :math:`\boldsymbol{M}` is treated as the splitted term in stationary
@@ -1234,7 +1384,7 @@ cdef class FGMRES(KspSolver):
 
     Parameters
     ----------
-    M : HILUCSI, optional
+    M : HIF, optional
         preconditioner
     rtol : float, optional
         relative tolerance, default is 1e-6
@@ -1253,12 +1403,12 @@ cdef class FGMRES(KspSolver):
     --------
 
     >>> from scipy.sparse import random
-    >>> from hilucsi4py import *
+    >>> from hifir4py import *
     >>> import numpy as np
     >>> A = random(10,10,0.5)
-    >>> M = HILUCSI()
+    >>> M = HIF()
     >>> M.factorize(A)
-    >>> solver = FGMRES(M)
+    >>> solver = GMRES(M)
     >>> x = solver.solve(A, np.random.rand(10))
     """
 
@@ -1275,14 +1425,14 @@ cdef class FGMRES(KspSolver):
 
     def __cinit__(
         self,
-        HILUCSI M=None,
+        HIF M=None,
         double rtol=1e-6,
         int restart=30,
         int maxit=500,
         int max_inners=2,
         **kw
     ):
-        self.solver.reset(new hilucsi.PyFGMRES())
+        self.solver.reset(new hif.PyGMRES())
         if M is not None:
             deref(<fgmres_ptr>self.solver.get()).set_M(M.M)
         deref(self.solver).set_rtol(rtol)
@@ -1310,9 +1460,9 @@ cdef class FGMRES(KspSolver):
 
     @property
     def M(self):
-        """HILUCSI: get preconditioner"""
+        """HIF: get preconditioner"""
         cdef:
-            HILUCSI _M = HILUCSI()
+            HIF _M = HIF()
             fgmres_ptr child = <fgmres_ptr>self.solver.get()
         if not deref(child).get_M():
             # empty
@@ -1322,7 +1472,7 @@ cdef class FGMRES(KspSolver):
         return _M
 
     @M.setter
-    def M(self, HILUCSI M):
+    def M(self, HIF M):
         deref(<fgmres_ptr>self.solver.get()).set_M(M.M)
 
     def __str__(self):
@@ -1333,10 +1483,10 @@ cdef class FGMRES(KspSolver):
         return fmt
 
 
-cdef class FGMRES_Mixed(KspSolver):
+cdef class GMRES_Mixed(KspSolver):
     r"""Flexible GMRES implementation with rhs preconditioner (mixed precision)
 
-    The FGMRES implementation has three modes (kernels): the first one is the
+    The GMRES implementation has three modes (kernels): the first one is the
     ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
     preconditioner; the second one is ``iter-refine`` fashion, where
     :math:`\boldsymbol{M}` is treated as the splitted term in stationary
@@ -1347,7 +1497,7 @@ cdef class FGMRES_Mixed(KspSolver):
 
     Parameters
     ----------
-    M : HILUCSI_Mixed, optional
+    M : HIF_Mixed, optional
         preconditioner
     rtol : float, optional
         relative tolerance, default is 1e-6
@@ -1366,12 +1516,12 @@ cdef class FGMRES_Mixed(KspSolver):
     --------
 
     >>> from scipy.sparse import random
-    >>> from hilucsi4py import *
+    >>> from hifir4py import *
     >>> import numpy as np
     >>> A = random(10,10,0.5)
-    >>> M = HILUCSI_Mixed()
+    >>> M = HIF_Mixed()
     >>> M.factorize(A)
-    >>> solver = FGMRES_Mixed(M)
+    >>> solver = GMRES_Mixed(M)
     >>> x = solver.solve(A, np.random.rand(10))
     """
 
@@ -1388,14 +1538,14 @@ cdef class FGMRES_Mixed(KspSolver):
 
     def __cinit__(
         self,
-        HILUCSI_Mixed M=None,
+        HIF_Mixed M=None,
         double rtol=1e-6,
         int restart=30,
         int maxit=500,
         int max_inners=2,
         **kw
     ):
-        self.solver.reset(new hilucsi.PyFGMRES_Mixed())
+        self.solver.reset(new hif.PyGMRES_Mixed())
         if M is not None:
             deref(<fgmres_mixed_ptr>self.solver.get()).set_M(M.M)
         deref(self.solver).set_rtol(rtol)
@@ -1423,9 +1573,9 @@ cdef class FGMRES_Mixed(KspSolver):
 
     @property
     def M(self):
-        """HILUCSI_Mixed: get preconditioner"""
+        """HIF_Mixed: get preconditioner"""
         cdef:
-            HILUCSI_Mixed _M = HILUCSI_Mixed()
+            HIF_Mixed _M = HIF_Mixed()
             fgmres_mixed_ptr child = <fgmres_mixed_ptr>self.solver.get()
         if not deref(child).get_M():
             # empty
@@ -1435,7 +1585,7 @@ cdef class FGMRES_Mixed(KspSolver):
         return _M
 
     @M.setter
-    def M(self, HILUCSI_Mixed M):
+    def M(self, HIF_Mixed M):
         deref(<fgmres_mixed_ptr>self.solver.get()).set_M(M.M)
 
     def __str__(self):
@@ -1460,7 +1610,7 @@ cdef class FQMRCGSTAB(KspSolver):
 
     Parameters
     ----------
-    M : HILUCSI, optional
+    M : HIF, optional
         preconditioner
     rtol : float, optional
         relative tolerance, default is 1e-6
@@ -1477,10 +1627,10 @@ cdef class FQMRCGSTAB(KspSolver):
     --------
 
     >>> from scipy.sparse import random
-    >>> from hilucsi4py import *
+    >>> from hifir4py import *
     >>> import numpy as np
     >>> A = random(10,10,0.5)
-    >>> M = HILUCSI()
+    >>> M = HIF()
     >>> M.factorize(A)
     >>> solver = FQMRCGSTAB(M)
     >>> x = solver.solve(A, np.random.rand(10))
@@ -1491,13 +1641,13 @@ cdef class FQMRCGSTAB(KspSolver):
 
     def __cinit__(
         self,
-        HILUCSI M=None,
+        HIF M=None,
         double rtol=1e-6,
         int maxit=500,
         int innersteps=2,
         **kw
     ):
-        self.solver.reset(new hilucsi.PyFQMRCGSTAB())
+        self.solver.reset(new hif.PyFQMRCGSTAB())
         if M is not None:
             deref(<fqmrcgstab_ptr>self.solver.get()).set_M(M.M)
         deref(self.solver).set_rtol(rtol)
@@ -1513,9 +1663,9 @@ cdef class FQMRCGSTAB(KspSolver):
 
     @property
     def M(self):
-        """HILUCSI: get preconditioner"""
+        """HIF: get preconditioner"""
         cdef:
-            HILUCSI _M = HILUCSI()
+            HIF _M = HIF()
             fqmrcgstab_ptr child = <fqmrcgstab_ptr>self.solver.get()
         if not deref(child).get_M():
             # empty
@@ -1525,7 +1675,7 @@ cdef class FQMRCGSTAB(KspSolver):
         return _M
 
     @M.setter
-    def M(self, HILUCSI M):
+    def M(self, HIF M):
         deref(<fqmrcgstab_ptr>self.solver.get()).set_M(M.M)
 
 
@@ -1543,7 +1693,7 @@ cdef class FQMRCGSTAB_Mixed(KspSolver):
 
     Parameters
     ----------
-    M : HILUCSI_Mixed, optional
+    M : HIF_Mixed, optional
         preconditioner
     rtol : float, optional
         relative tolerance, default is 1e-6
@@ -1560,10 +1710,10 @@ cdef class FQMRCGSTAB_Mixed(KspSolver):
     --------
 
     >>> from scipy.sparse import random
-    >>> from hilucsi4py import *
+    >>> from hifir4py import *
     >>> import numpy as np
     >>> A = random(10,10,0.5)
-    >>> M = HILUCSI_Mixed()
+    >>> M = HIF_Mixed()
     >>> M.factorize(A)
     >>> solver = FQMRCGSTAB_Mixed(M)
     >>> x = solver.solve(A, np.random.rand(10))
@@ -1574,13 +1724,13 @@ cdef class FQMRCGSTAB_Mixed(KspSolver):
 
     def __cinit__(
         self,
-        HILUCSI_Mixed M=None,
+        HIF_Mixed M=None,
         double rtol=1e-6,
         int maxit=500,
         int innersteps=2,
         **kw,
     ):
-        self.solver.reset(new hilucsi.PyFQMRCGSTAB_Mixed())
+        self.solver.reset(new hif.PyFQMRCGSTAB_Mixed())
         if M is not None:
             deref(<fqmrcgstab_mixed_ptr>self.solver.get()).set_M(M.M)
         deref(self.solver).set_rtol(rtol)
@@ -1596,9 +1746,9 @@ cdef class FQMRCGSTAB_Mixed(KspSolver):
 
     @property
     def M(self):
-        """HILUCSI_Mixed: get preconditioner"""
+        """HIF_Mixed: get preconditioner"""
         cdef:
-            HILUCSI_Mixed _M = HILUCSI_Mixed()
+            HIF_Mixed _M = HIF_Mixed()
             fqmrcgstab_mixed_ptr child = <fqmrcgstab_mixed_ptr>self.solver.get()
         if not deref(child).get_M():
             # empty
@@ -1608,7 +1758,7 @@ cdef class FQMRCGSTAB_Mixed(KspSolver):
         return _M
 
     @M.setter
-    def M(self, HILUCSI_Mixed M):
+    def M(self, HIF_Mixed M):
         deref(<fqmrcgstab_mixed_ptr>self.solver.get()).set_M(M.M)
 
 
@@ -1626,7 +1776,7 @@ cdef class FBICGSTAB(KspSolver):
 
     Parameters
     ----------
-    M : HILUCSI, optional
+    M : HIF, optional
         preconditioner
     rtol : float, optional
         relative tolerance, default is 1e-6
@@ -1643,10 +1793,10 @@ cdef class FBICGSTAB(KspSolver):
     --------
 
     >>> from scipy.sparse import random
-    >>> from hilucsi4py import *
+    >>> from hifir4py import *
     >>> import numpy as np
     >>> A = random(10,10,0.5)
-    >>> M = HILUCSI()
+    >>> M = HIF()
     >>> M.factorize(A)
     >>> solver = FBICGSTAB(M)
     >>> x = solver.solve(A, np.random.rand(10))
@@ -1657,13 +1807,13 @@ cdef class FBICGSTAB(KspSolver):
 
     def __cinit__(
         self,
-        HILUCSI M=None,
+        HIF M=None,
         double rtol=1e-6,
         int maxit=500,
         int innersteps=2,
         **kw,
     ):
-        self.solver.reset(new hilucsi.PyFBICGSTAB())
+        self.solver.reset(new hif.PyFBICGSTAB())
         if M is not None:
             deref(<fbicgstab_ptr>self.solver.get()).set_M(M.M)
         deref(self.solver).set_rtol(rtol)
@@ -1679,9 +1829,9 @@ cdef class FBICGSTAB(KspSolver):
 
     @property
     def M(self):
-        """HILUCSI: get preconditioner"""
+        """HIF: get preconditioner"""
         cdef:
-            HILUCSI _M = HILUCSI()
+            HIF _M = HIF()
             fbicgstab_ptr child = <fbicgstab_ptr>self.solver.get()
         if not deref(child).get_M():
             # empty
@@ -1691,7 +1841,7 @@ cdef class FBICGSTAB(KspSolver):
         return _M
 
     @M.setter
-    def M(self, HILUCSI M):
+    def M(self, HIF M):
         deref(<fbicgstab_ptr>self.solver.get()).set_M(M.M)
 
 
@@ -1709,7 +1859,7 @@ cdef class FBICGSTAB_Mixed(KspSolver):
 
     Parameters
     ----------
-    M : HILUCSI_Mixed, optional
+    M : HIF_Mixed, optional
         preconditioner
     rtol : float, optional
         relative tolerance, default is 1e-6
@@ -1726,10 +1876,10 @@ cdef class FBICGSTAB_Mixed(KspSolver):
     --------
 
     >>> from scipy.sparse import random
-    >>> from hilucsi4py import *
+    >>> from hifir4py import *
     >>> import numpy as np
     >>> A = random(10,10,0.5)
-    >>> M = HILUCSI_Mixed()
+    >>> M = HIF_Mixed()
     >>> M.factorize(A)
     >>> solver = FBICGSTAB_Mixed(M)
     >>> x = solver.solve(A, np.random.rand(10))
@@ -1740,13 +1890,13 @@ cdef class FBICGSTAB_Mixed(KspSolver):
 
     def __cinit__(
         self,
-        HILUCSI_Mixed M=None,
+        HIF_Mixed M=None,
         double rtol=1e-6,
         int maxit=500,
         int innersteps=2,
         **kw,
     ):
-        self.solver.reset(new hilucsi.PyFBICGSTAB_Mixed())
+        self.solver.reset(new hif.PyFBICGSTAB_Mixed())
         if M is not None:
             deref(<fbicgstab_mixed_ptr>self.solver.get()).set_M(M.M)
         deref(self.solver).set_rtol(rtol)
@@ -1762,9 +1912,9 @@ cdef class FBICGSTAB_Mixed(KspSolver):
 
     @property
     def M(self):
-        """HILUCSI_Mixed: get preconditioner"""
+        """HIF_Mixed: get preconditioner"""
         cdef:
-            HILUCSI_Mixed _M = HILUCSI_Mixed()
+            HIF_Mixed _M = HIF_Mixed()
             fbicgstab_mixed_ptr child = <fbicgstab_mixed_ptr>self.solver.get()
         if not deref(child).get_M():
             # empty
@@ -1774,7 +1924,7 @@ cdef class FBICGSTAB_Mixed(KspSolver):
         return _M
 
     @M.setter
-    def M(self, HILUCSI_Mixed M):
+    def M(self, HIF_Mixed M):
         deref(<fbicgstab_mixed_ptr>self.solver.get()).set_M(M.M)
 
 
@@ -1792,7 +1942,7 @@ cdef class TGMRESR(KspSolver):
 
     Parameters
     ----------
-    M : HILUCSI, optional
+    M : HIF, optional
         preconditioner
     rtol : float, optional
         relative tolerance, default is 1e-6
@@ -1811,10 +1961,10 @@ cdef class TGMRESR(KspSolver):
     --------
 
     >>> from scipy.sparse import random
-    >>> from hilucsi4py import *
+    >>> from hifir4py import *
     >>> import numpy as np
     >>> A = random(10,10,0.5)
-    >>> M = HILUCSI()
+    >>> M = HIF()
     >>> M.factorize(A)
     >>> solver = TGMRESR(M)
     >>> x = solver.solve(A, np.random.rand(10))
@@ -1833,14 +1983,14 @@ cdef class TGMRESR(KspSolver):
 
     def __cinit__(
         self,
-        HILUCSI M=None,
+        HIF M=None,
         double rtol=1e-6,
         int cycle=10,
         int maxit=500,
         int max_inners=2,
         **kw
     ):
-        self.solver.reset(new hilucsi.PyFGMRES())
+        self.solver.reset(new hif.PyGMRES())
         if M is not None:
             deref(<fgmres_ptr>self.solver.get()).set_M(M.M)
         deref(self.solver).set_rtol(rtol)
@@ -1868,9 +2018,9 @@ cdef class TGMRESR(KspSolver):
 
     @property
     def M(self):
-        """HILUCSI: get preconditioner"""
+        """HIF: get preconditioner"""
         cdef:
-            HILUCSI _M = HILUCSI()
+            HIF _M = HIF()
             fgmres_ptr child = <fgmres_ptr>self.solver.get()
         if not deref(child).get_M():
             # empty
@@ -1880,7 +2030,7 @@ cdef class TGMRESR(KspSolver):
         return _M
 
     @M.setter
-    def M(self, HILUCSI M):
+    def M(self, HIF M):
         deref(<fgmres_ptr>self.solver.get()).set_M(M.M)
 
     def __str__(self):
@@ -1905,7 +2055,7 @@ cdef class TGMRESR_Mixed(KspSolver):
 
     Parameters
     ----------
-    M : HILUCSI_Mixed, optional
+    M : HIF_Mixed, optional
         preconditioner
     rtol : float, optional
         relative tolerance, default is 1e-6
@@ -1924,10 +2074,10 @@ cdef class TGMRESR_Mixed(KspSolver):
     --------
 
     >>> from scipy.sparse import random
-    >>> from hilucsi4py import *
+    >>> from hifir4py import *
     >>> import numpy as np
     >>> A = random(10,10,0.5)
-    >>> M = HILUCSI_Mixed()
+    >>> M = HIF_Mixed()
     >>> M.factorize(A)
     >>> solver = TGMRESR_Mixed(M)
     >>> x = solver.solve(A, np.random.rand(10))
@@ -1938,14 +2088,14 @@ cdef class TGMRESR_Mixed(KspSolver):
 
     def __cinit__(
         self,
-        HILUCSI_Mixed M=None,
+        HIF_Mixed M=None,
         double rtol=1e-6,
         int cycle=10,
         int maxit=500,
         int max_inners=2,
         **kw,
     ):
-        self.solver.reset(new hilucsi.PyFGMRES_Mixed())
+        self.solver.reset(new hif.PyGMRES_Mixed())
         if M is not None:
             deref(<fgmres_mixed_ptr>self.solver.get()).set_M(M.M)
         deref(self.solver).set_rtol(rtol)
@@ -1973,9 +2123,9 @@ cdef class TGMRESR_Mixed(KspSolver):
 
     @property
     def M(self):
-        """HILUCSI_Mixed: get preconditioner"""
+        """HIF_Mixed: get preconditioner"""
         cdef:
-            HILUCSI_Mixed _M = HILUCSI_Mixed()
+            HIF_Mixed _M = HIF_Mixed()
             fgmres_mixed_ptr child = <fgmres_mixed_ptr>self.solver.get()
         if not deref(child).get_M():
             # empty
@@ -1985,7 +2135,7 @@ cdef class TGMRESR_Mixed(KspSolver):
         return _M
 
     @M.setter
-    def M(self, HILUCSI_Mixed M):
+    def M(self, HIF_Mixed M):
         deref(<fgmres_mixed_ptr>self.solver.get()).set_M(M.M)
 
     def __str__(self):

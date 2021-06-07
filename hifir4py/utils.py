@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 ###############################################################################
-#                 This file is part of HILUCSI4PY project                     #
+#                 This file is part of HIFIR4PY project                       #
 #                                                                             #
 #    Copyright (C) 2019 NumGeom Group at Stony Brook University               #
 #                                                                             #
@@ -17,9 +17,9 @@
 #    You should have received a copy of the GNU General Public License        #
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.   #
 ###############################################################################
-"""Utility module for ``hilucsi4py``
+"""Utility module for ``hifir4py``
 
-This module contains some helpful utility routines for ``hilucsi4py``, the core
+This module contains some helpful utility routines for ``hifir4py``, the core
 functions are
 
 1. parsing user arbitrary inputs, and
@@ -28,7 +28,7 @@ functions are
 Notice that we use ``int`` as index type and ``double`` as floating number type,
 thus the corresponding numpy dtypes are ``intc`` and ``float64``.
 
-.. module:: hilucsi4py.utils
+.. module:: hifir4py.utils
     :noindex:
 .. moduleauthor:: Qiao Chen <qiao.chen@stonybrook.edu>
 """

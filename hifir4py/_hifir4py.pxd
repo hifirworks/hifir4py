@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 ###############################################################################
-#                 This file is part of HILUCSI4PY project                     #
+#                 This file is part of HIFIR4PY project                       #
 #                                                                             #
 #    Copyright (C) 2019 NumGeom Group at Stony Brook University               #
 #                                                                             #
@@ -25,15 +25,15 @@ from libc.stddef cimport size_t
 from libcpp cimport bool
 from libcpp.utility cimport pair
 from libcpp.memory cimport shared_ptr
-cimport hilucsi4py as hilucsi
+cimport hifir4py as hif
 
 
-ctypedef shared_ptr[hilucsi.PyHILUCSI] PyHILUCSI_ptr
-ctypedef shared_ptr[hilucsi.PyHILUCSI_Mixed] PyHILUCSI_Mixed_ptr
+ctypedef shared_ptr[hif.PyHIF] PyHIF_ptr
+ctypedef shared_ptr[hif.PyHIF_Mixed] PyHIF_Mixed_ptr
 ctypedef fused M_type:
-    PyHILUCSI_ptr
-    PyHILUCSI_Mixed_ptr
-ctypedef shared_ptr[hilucsi.KspSolver] KSP_ptr
+    PyHIF_ptr
+    PyHIF_Mixed_ptr
+ctypedef shared_ptr[hif.KspSolver] KSP_ptr
 
 
 # factorize
@@ -44,14 +44,21 @@ cdef inline void factorize_M(
     int[::1] colind,
     double[::1] vals,
     size_t m,
-    hilucsi.Options *opts,
+    hif.Options *opts,
 ) nogil:
     M.get().factorize_raw(n, &rowptr[0], &colind[0], &vals[0], m, opts[0])
 
 
 # solve
-cdef inline void solve_M(M_type M, size_t n, double[::1] b, double[::1] x) nogil:
-    M.get().solve_raw(n, &b[0], &x[0])
+cdef inline void solve_M(
+    M_type M,
+    size_t n,
+    double[::1] b,
+    double[::1] x,
+    bool trans,
+    size_t r,
+) nogil:
+    M.get().solve_raw(n, &b[0], &x[0], trans, r)
 
 
 # solve with iterative refinement
@@ -64,8 +71,23 @@ cdef inline void solve_M_IR(
     double[::1] b,
     size_t N,
     double[::1] x,
+    bool trans,
+    size_t r,
 ) nogil:
-    M.get().solve_raw(n, &rowptr[0], &colind[0], &vals[0], &b[0], N, &x[0])
+    M.get().hifir_raw(n, &rowptr[0], &colind[0], &vals[0], &b[0], N, &x[0],
+        trans, r)
+
+
+# solve
+cdef inline void mmultiply_M(
+    M_type M,
+    size_t n,
+    double[::1] b,
+    double[::1] x,
+    bool trans,
+    size_t r,
+) nogil:
+    M.get().mmultiply_raw(n, &b[0], &x[0], trans, r)
 
 
 # ksp solve

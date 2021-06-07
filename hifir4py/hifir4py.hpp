@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-//              This file is part of HILUCSI4PY project                      //
+//              This file is part of HIFIR4PY project                        //
 //                                                                           //
 //     Copyright (C) 2019 NumGeom Group at Stony Brook University            //
 //                                                                           //
@@ -20,21 +20,21 @@
 // Authors:
 //  Qiao,
 
-#ifndef _HILUCSI_PYTHON_HILUCSI4PY_HPP
-#define _HILUCSI_PYTHON_HILUCSI4PY_HPP
+#ifndef _HIFIR_PYTHON_HIFIR4PY_HPP
+#define _HIFIR_PYTHON_HIFIR4PY_HPP
 
 // NOTE we need to ensure C++ code throws exceptions
-#ifndef HILUCSI_THROW
-#  define HILUCSI_THROW
-#endif  // HILUCSI_THROW
+#ifndef HIF_THROW
+#  define HIF_THROW
+#endif  // HIF_THROW
 
 // we need to make sure that the stdout and stderr are not pre-defined
-#ifdef HILUCSI_STDOUT
-#  undef HILUCSI_STDOUT
-#endif  // HILUCSI_STDOUT
-#ifdef HILUCSI_STDERR
-#  undef HILUCSI_STDERR
-#endif  // HILUCSI_STDOUT
+#ifdef HIF_STDOUT
+#  undef HIF_STDOUT
+#endif  // HIF_STDOUT
+#ifdef HIF_STDERR
+#  undef HIF_STDERR
+#endif  // HIF_STDOUT
 
 #include <string>
 #include <type_traits>
@@ -44,34 +44,34 @@
 #include "file_dp_api.h"
 
 // stdout wrapper
-#define HILUCSI_STDOUT(__msg)     \
-  do {                            \
-    import_hilucsi4py__file_dp(); \
-    hilucsi4py_stdout(__msg);     \
+#define HIF_STDOUT(__msg)       \
+  do {                          \
+    import_hifir4py__file_dp(); \
+    hifir4py_stdout(__msg);     \
   } while (false)
 
 // stderr wrapper
-#define HILUCSI_STDERR(__msg)     \
-  do {                            \
-    import_hilucsi4py__file_dp(); \
-    hilucsi4py_stderr(__msg);     \
+#define HIF_STDERR(__msg)       \
+  do {                          \
+    import_hifir4py__file_dp(); \
+    hifir4py_stderr(__msg);     \
   } while (false)
 
-// now, include the hilucsi code generator
-#include <HILUCSI.hpp>
-#include "hilucsi4py_nsp.hpp"
-namespace hilucsi {
+// now, include the hifir code generator
+#include <HIF.hpp>
+#include "hifir4py_nsp.hpp"
+namespace hif {
 
 // types
-using py_crs_type   = DefaultHILUCSI::crs_type;
-using py_array_type = DefaultHILUCSI::array_type;
-using size_type     = DefaultHILUCSI::size_type;
+using py_crs_type   = DefaultHIF::crs_type;
+using py_array_type = DefaultHIF::array_type;
+using size_type     = DefaultHIF::size_type;
 
-// read native hilucsi format
-inline void read_hilucsi(const std::string &fn, std::size_t &nrows,
-                         std::size_t &ncols, std::size_t &m,
-                         std::vector<int> &indptr, std::vector<int> &indices,
-                         std::vector<double> &vals, const bool is_bin = true) {
+// read native hifir format
+inline void read_hifir(const std::string &fn, std::size_t &nrows,
+                       std::size_t &ncols, std::size_t &m,
+                       std::vector<int> &indptr, std::vector<int> &indices,
+                       std::vector<double> &vals, const bool is_bin = true) {
   Array<int>    ind_ptr, inds;
   Array<double> values;
   auto          A = is_bin ? py_crs_type::from_bin(fn.c_str(), &m)
@@ -87,11 +87,11 @@ inline void read_hilucsi(const std::string &fn, std::size_t &nrows,
   vals    = std::vector<double>(values.cbegin(), values.cend());
 }
 
-// write native hilucsi format
-inline void write_hilucsi(const std::string &fn, const std::size_t nrows,
-                          const std::size_t ncols, const int *indptr,
-                          const int *indices, const double *vals,
-                          const std::size_t m0, const bool is_bin = true) {
+// write native hifir format
+inline void write_hifir(const std::string &fn, const std::size_t nrows,
+                        const std::size_t ncols, const int *indptr,
+                        const int *indices, const double *vals,
+                        const std::size_t m0, const bool is_bin = true) {
   constexpr static bool WRAP = true;
   const py_crs_type     A(nrows, ncols, const_cast<int *>(indptr),
                           const_cast<int *>(indices), const_cast<double *>(vals),
@@ -105,20 +105,20 @@ inline void write_hilucsi(const std::string &fn, const std::size_t nrows,
 }
 
 // query file information
-inline void query_hilucsi_info(const std::string &fn, bool &is_row, bool &is_c,
-                               bool &is_double, bool &is_real,
-                               std::uint64_t &nrows, std::uint64_t &ncols,
-                               std::uint64_t &nnz, std::uint64_t &m,
-                               const bool is_bin = true) {
+inline void query_hifir_info(const std::string &fn, bool &is_row, bool &is_c,
+                             bool &is_double, bool &is_real,
+                             std::uint64_t &nrows, std::uint64_t &ncols,
+                             std::uint64_t &nnz, std::uint64_t &m,
+                             const bool is_bin = true) {
   std::tie(is_row, is_c, is_double, is_real, nrows, ncols, nnz, m) =
       is_bin ? query_info_bin(fn.c_str()) : query_info_ascii(fn.c_str());
 }
 
 // In order to make things easier, we directly use the raw data types, thus
 // we need to create a child class.
-class PyHILUCSI : public DefaultHILUCSI {
+class PyHIF : public DefaultHIF {
  public:
-  using base = DefaultHILUCSI;
+  using base = DefaultHIF;
 
   // factorize crs
   inline void factorize_raw(const size_type n, const int *rowptr,
@@ -128,22 +128,25 @@ class PyHILUCSI : public DefaultHILUCSI {
 
     py_crs_type A(n, n, const_cast<int *>(rowptr), const_cast<int *>(colind),
                   const_cast<double *>(vals), WRAP);
-    base::factorize(A, m0, opts);
+    base::factorize(A, opts, m0);
   }
 
-  // overload solve
-  inline void solve_raw(const size_type n, const double *b, double *x) const {
+  // solve
+  inline void solve_raw(const size_type n, const double *b, double *x,
+                        const bool      trans = false,
+                        const size_type r     = 0u) const {
     constexpr static bool WRAP = true;
 
     const array_type B(n, const_cast<double *>(b), WRAP);
     array_type       X(n, x, WRAP);
-    base::solve(B, X);
+    base::solve(B, X, trans, r);
   }
 
-  // overload solve with iterative refinement
-  inline void solve_raw(const size_type n, const int *rowptr, const int *colind,
+  // solve with iterative refinement
+  inline void hifir_raw(const size_type n, const int *rowptr, const int *colind,
                         const double *vals, const double *b, const size_type N,
-                        double *x) const {
+                        double *x, const bool trans = false,
+                        const size_type r = static_cast<size_type>(-1)) const {
     constexpr static bool WRAP = true;
 
     const array_type  B(n, const_cast<double *>(b), WRAP);
@@ -151,14 +154,25 @@ class PyHILUCSI : public DefaultHILUCSI {
     const py_crs_type A(n, n, const_cast<int *>(rowptr),
                         const_cast<int *>(colind), const_cast<double *>(vals),
                         WRAP);
-    base::solve(A, B, N, X);
+    base::hifir(A, B, N, X, trans, r);
+  }
+
+  // solve
+  inline void mmultiply_raw(const size_type n, const double *b, double *x,
+                            const bool      trans = false,
+                            const size_type r     = 0u) const {
+    constexpr static bool WRAP = true;
+
+    const array_type B(n, const_cast<double *>(b), WRAP);
+    array_type       X(n, x, WRAP);
+    base::mmultiply(B, X, trans, r);
   }
 };
 
 // mixed precision, using float preconditioner
-class PyHILUCSI_Mixed : public HILUCSI<float, int> {
+class PyHIF_Mixed : public HIF<float, int> {
  public:
-  using base = HILUCSI<float, int>;
+  using base = HIF<float, int>;
 
   // factorize crs
   inline void factorize_raw(const size_type n, const int *rowptr,
@@ -168,22 +182,25 @@ class PyHILUCSI_Mixed : public HILUCSI<float, int> {
 
     py_crs_type A(n, n, const_cast<int *>(rowptr), const_cast<int *>(colind),
                   const_cast<double *>(vals), WRAP);
-    base::factorize(A, m0, opts);
+    base::factorize(A, opts, m0);
   }
 
-  // overload solve
-  inline void solve_raw(const size_type n, const double *b, double *x) const {
+  // solve
+  inline void solve_raw(const size_type n, const double *b, double *x,
+                        const bool      trans = false,
+                        const size_type r     = 0u) const {
     constexpr static bool WRAP = true;
 
     const py_array_type B(n, const_cast<double *>(b), WRAP);
     py_array_type       X(n, x, WRAP);
-    base::solve(B, X);
+    base::solve(B, X, trans, r);
   }
 
-  // overload solve with iterative refinement
-  inline void solve_raw(const size_type n, const int *rowptr, const int *colind,
+  // solve with iterative refinement
+  inline void hifir_raw(const size_type n, const int *rowptr, const int *colind,
                         const double *vals, const double *b, const size_type N,
-                        double *x) const {
+                        double *x, const bool trans = false,
+                        const size_type r = static_cast<size_type>(-1)) const {
     constexpr static bool WRAP = true;
 
     const py_array_type B(n, const_cast<double *>(b), WRAP);
@@ -191,7 +208,18 @@ class PyHILUCSI_Mixed : public HILUCSI<float, int> {
     const py_crs_type   A(n, n, const_cast<int *>(rowptr),
                           const_cast<int *>(colind), const_cast<double *>(vals),
                           WRAP);
-    base::solve(A, B, N, X);
+    base::hifir(A, B, N, X, trans, r);
+  }
+
+  // solve
+  inline void mmultiply_raw(const size_type n, const double *b, double *x,
+                            const bool      trans = false,
+                            const size_type r     = 0u) const {
+    constexpr static bool WRAP = true;
+
+    const py_array_type B(n, const_cast<double *>(b), WRAP);
+    py_array_type       X(n, x, WRAP);
+    base::mmultiply(B, X, trans, r);
   }
 };
 
@@ -221,7 +249,7 @@ class KspSolver {
 };
 
 // using a template base for Ksp solver
-template <template <class, class> class Ksp, class MType = PyHILUCSI,
+template <template <class, class> class Ksp, class MType = PyHIF,
           class ValueType = void>
 class KspAdapt : public Ksp<MType, ValueType>, public KspSolver {
  public:
@@ -272,15 +300,19 @@ class KspAdapt : public Ksp<MType, ValueType>, public KspSolver {
   }
 };
 
-using PyFGMRES           = KspAdapt<ksp::FGMRES>;      // fgmres
-using PyFQMRCGSTAB       = KspAdapt<ksp::FQMRCGSTAB>;  // fqmrcgstab
-using PyFBICGSTAB        = KspAdapt<ksp::FBICGSTAB>;   // fbicgstab
-using PyFGMRES_Mixed     = KspAdapt<ksp::FGMRES, PyHILUCSI_Mixed, double>;
-using PyFQMRCGSTAB_Mixed = KspAdapt<ksp::FQMRCGSTAB, PyHILUCSI_Mixed, double>;
-using PyFBICGSTAB_Mixed  = KspAdapt<ksp::FBICGSTAB, PyHILUCSI_Mixed, double>;
-using PyTGMRESR          = KspAdapt<ksp::TGMRESR>;
-using PyTGMRESR_Mixed    = KspAdapt<ksp::TGMRESR, PyHILUCSI_Mixed, double>;
+using PyGMRES             = KspAdapt<ksp::GMRES>;       // gmres
+using PyFGMRES            = KspAdapt<ksp::FGMRES>;      // fgmres
+using PyFQMRCGSTAB        = KspAdapt<ksp::FQMRCGSTAB>;  // fqmrcgstab
+using PyFBICGSTAB         = KspAdapt<ksp::FBICGSTAB>;   // fbicgstab
+using PyTGMRESR           = KspAdapt<ksp::TGMRESR>;
+using PyFGMRES_Null       = KspAdapt<ksp::GMRES_Null>;
+using PyGMRES_Mixed       = KspAdapt<ksp::GMRES, PyHIF_Mixed, double>;
+using PyFGMRES_Mixed      = KspAdapt<ksp::FGMRES, PyHIF_Mixed, double>;
+using PyFQMRCGSTAB_Mixed  = KspAdapt<ksp::FQMRCGSTAB, PyHIF_Mixed, double>;
+using PyFBICGSTAB_Mixed   = KspAdapt<ksp::FBICGSTAB, PyHIF_Mixed, double>;
+using PyTGMRESR_Mixed     = KspAdapt<ksp::TGMRESR, PyHIF_Mixed, double>;
+using PyFGMRES_Null_Mixed = KspAdapt<ksp::GMRES_Null, PyHIF_Mixed, double>;
 
-}  // namespace hilucsi
+}  // namespace hif
 
-#endif  // _HILUCSI_PYTHON_HILUCSI4PY_HPP
+#endif  // _HIFIR_PYTHON_HIFIR4PY_HPP

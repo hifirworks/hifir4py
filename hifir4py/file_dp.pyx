@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 ###############################################################################
-#                 This file is part of HILUCSI4PY project                     #
+#                 This file is part of HIFIR4PY project                       #
 #                                                                             #
 #    Copyright (C) 2019 NumGeom Group at Stony Brook University               #
 #                                                                             #
@@ -20,7 +20,7 @@
 
 # This file is to utilize Cython API feature to generate Python3 print
 # wrappers for stdout (1) and stderr (2), which will be wrapped as
-# HILUCSI_{STDOUT,STDERR}, resp.
+# HIF_{STDOUT,STDERR}, resp.
 
 # Authors:
 #   Qiao,
@@ -28,9 +28,9 @@
 import sys
 
 
-cdef api void hilucsi4py_stdout(const char *msg):
-    print(msg.decode('utf-8'), file=sys.stdout)
+cdef api void hifir4py_stdout(const char *msg):
+    print(msg.decode("utf-8"), file=sys.stdout)
 
 
-cdef api void hilucsi4py_stderr(const char *msg):
-    print(msg.decode('utf-8'), file=sys.stderr)
+cdef api void hifir4py_stderr(const char *msg):
+    print(msg.decode("utf-8"), file=sys.stderr)

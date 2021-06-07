@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 ###############################################################################
-#                 This file is part of HILUCSI4PY project                     #
+#                 This file is part of HIFIR4PY project                       #
 ###############################################################################
 
 # matrix was created by MATLAB gallery('neumann', 100)
@@ -9,7 +9,7 @@
 from scipy.io import loadmat
 import numpy as np
 
-from hilucsi4py import create_ksp
+from hifir4py import create_ksp
 
 
 def nsp_filter(v):
@@ -18,7 +18,7 @@ def nsp_filter(v):
 
 def test_singular_callback():
     A, p_left = loadmat("singular.mat")["A"], loadmat("singular.mat")["p"].reshape(-1)
-    ksp = create_ksp("fgmres")
+    ksp = create_ksp("gmres")
     ksp.M.factorize(A)
     b = np.random.rand(A.shape[0])
     # filter out the left nullspace in b
@@ -31,7 +31,7 @@ def test_singular_callback():
 
 def test_singular_callback_mixed():
     A, p_left = loadmat("singular.mat")["A"], loadmat("singular.mat")["p"].reshape(-1)
-    ksp = create_ksp("fgmres", mixed=True)
+    ksp = create_ksp("gmres", mixed=True)
     ksp.M.factorize(A)
     b = np.random.rand(A.shape[0])
     # filter out the left nullspace in b

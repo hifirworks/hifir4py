@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 ###############################################################################
-#                 This file is part of HILUCSI4PY project                     #
+#                 This file is part of HIFIR4PY project                       #
 #                                                                             #
 #    Copyright (C) 2019 NumGeom Group at Stony Brook University               #
 #                                                                             #
@@ -19,18 +19,18 @@
 ###############################################################################
 from enum import IntEnum
 
-from ._hilucsi4py import *
+from ._hifir4py import *
 
 
 class Configuration:
-    """HILUCSI4PY configuration interface
+    """HIFIR4PY configuration interface
     """
 
     @staticmethod
     def version():
-        """Check the backend HILUCSI version
+        """Check the backend HIFIR version
 
-        The version number is also adapted to be the `hilucsi4py` version; the
+        The version number is also adapted to be the `hifir4py` version; the
         convension is ``global.major.minor``.
 
         Returns
@@ -38,7 +38,7 @@ class Configuration:
         str
             Version number
         """
-        from ._hilucsi4py import _version
+        from ._hifir4py import _version
 
         return _version()
 
@@ -51,33 +51,33 @@ class Configuration:
         bool
             True if the waring log is on
         """
-        from ._hilucsi4py import _is_warning
+        from ._hifir4py import _is_warning
 
         return _is_warning()
 
     @staticmethod
     def enable_warning():
-        """Enable warning for underlying HILUCSI routines
+        """Enable warning for underlying HIFIR routines
 
         See Also
         --------
         is_warning
         disable_warning
         """
-        from ._hilucsi4py import _enable_warning
+        from ._hifir4py import _enable_warning
 
         _enable_warning()
 
     @staticmethod
     def disable_warning():
-        """Disable warning messages from HILUCSI
+        """Disable warning messages from HIFIR
 
         See Also
         --------
         enable_warning
         is_warning
         """
-        from ._hilucsi4py import _disable_warning
+        from ._hifir4py import _disable_warning
 
         _disable_warning()
 
@@ -138,6 +138,22 @@ class Reorder(IntEnum):
     """
 
 
+class Pivoting(IntEnum):
+    """Pivoting options
+    """
+
+    OFF = PIVOTING_OFF
+    """Disable reorder
+    """
+
+    ON = PIVOTING_ON
+    """Enable pivoting"""
+
+    AUTO = REORDER_AUTO
+    """Automatically determined reordering scheme (default)
+    """
+
+
 def get_include():
     """Get the include path
 
@@ -152,7 +168,7 @@ def get_include():
 
 
 def create_ksp(ksp, *args, **kw):
-    """Create and initialize a KSP solver with HILUCSI embedded in
+    """Create and initialize a KSP solver with HIFIR embedded in
 
     Parameters
     ----------
@@ -176,7 +192,7 @@ def create_ksp(ksp, *args, **kw):
     Examples
     --------
 
-    >>> from hilucsi4py import *
+    >>> from hifir4py import *
     >>> solver = create_ksp("gmres")  # GMRES
     >>> from scipy.sparse import random
     >>> A = random(10, 10, 0.5)
@@ -230,7 +246,7 @@ def create_ksp(ksp, *args, **kw):
     if ksp.find("gmresr") > -1:
         return TGMRESR(*args, **kw) if not mixed else TGMRESR_Mixed(*args, **kw)
     if ksp.find("gmres") > -1:
-        return FGMRES(*args, **kw) if not mixed else FGMRES_Mixed(*args, *kw)
+        return GMRES(*args, **kw) if not mixed else GMRES_Mixed(*args, *kw)
     if ksp.find("qmrcgstab") > -1:
         return FQMRCGSTAB(*args, **kw) if not mixed else FQMRCGSTAB_Mixed(*args, **kw)
     if ksp.find("bicgstab"):
@@ -239,7 +255,7 @@ def create_ksp(ksp, *args, **kw):
 
 
 def create_M(mixed=False):
-    """Create HILUCSI preconditioner
+    """Create HIF preconditioner
 
     Parameters
     ----------
@@ -248,7 +264,7 @@ def create_M(mixed=False):
 
     Returns
     -------
-    HILUCSI or HILUCSI_Mixed
+    HIF or HIF_Mixed
         If `mixed` is False, return the former.
 
     See Also
@@ -262,4 +278,4 @@ def create_M(mixed=False):
     directly use :func:`create_ksp` as each KSP solver has a preconditioner
     embedded in.
     """
-    return HILUCSI() if not mixed else HILUCSI_Mixed()
+    return HIF() if not mixed else HIF_Mixed()

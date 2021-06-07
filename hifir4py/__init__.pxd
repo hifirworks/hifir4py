@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 ###############################################################################
-#                 This file is part of HILUCSI4PY project                     #
+#                 This file is part of HIFIR4PY project                       #
 #                                                                             #
 #    Copyright (C) 2019 NumGeom Group at Stony Brook University               #
 #                                                                             #
@@ -21,7 +21,7 @@
 # Authors:
 #   Qiao,
 
-# This is the core interface for hilucsi4py
+# This is the core interface for hifir4py
 
 from libcpp cimport bool
 from libcpp.string cimport string as std_string
@@ -33,7 +33,7 @@ from libcpp.utility cimport pair
 from cpython.ref cimport PyObject
 
 
-cdef extern from "hilucsi4py.hpp" namespace "hilucsi":
+cdef extern from "hifir4py.hpp" namespace "hif":
     # nullspace eliminator with gil
     cdef cppclass PyNspFilter:
         PyNspFilter()
@@ -45,7 +45,7 @@ cdef extern from "hilucsi4py.hpp" namespace "hilucsi":
         void enable_or()
 
 
-cdef extern from "hilucsi4py.hpp" namespace "hilucsi" nogil:
+cdef extern from "hifir4py.hpp" namespace "hif" nogil:
     # two necessary utilities
     std_string version()
     bool warn_flag(const int)
@@ -57,11 +57,17 @@ cdef extern from "hilucsi4py.hpp" namespace "hilucsi" nogil:
         VERBOSE_PRE
         VERBOSE_FAC
         VERBOSE_PRE_TIME
+        VERBOSE_MEM
     cdef enum:
         REORDER_OFF
         REORDER_AUTO
         REORDER_AMD
         REORDER_RCM
+    cdef enum:
+        PIVOTING_OFF
+        PIVOTING_ON
+        PIVOTING_AUTO
+
     ctypedef struct Options:
         pass
     Options get_default_options()
@@ -74,30 +80,33 @@ cdef extern from "hilucsi4py.hpp" namespace "hilucsi" nogil:
     std_string get_verbose(const Options &opts);
 
     # io
-    void read_hilucsi(const std_string &fn, size_t &nrows, size_t &ncols,
-                      size_t &m, vector[int] &indptr,
-                      vector[int] &indices, vector[double] &vals,
-                      const bool is_bin) except +
-    void write_hilucsi(const std_string &fn, const size_t nrows,
-                       const size_t ncols, const int *indptr,
-                       const int *indices, const double *vals,
-                       const size_t m0, const bool is_bin) except +
-    void query_hilucsi_info(const std_string &fn, bool &is_row, bool &is_c,
-                            bool &is_double, bool &is_real,
-                            uint64_t &nrows, uint64_t &ncols,
-                            uint64_t &nnz, uint64_t &m,
-                            const bool is_bin) except +
+    void read_hifir(const std_string &fn, size_t &nrows, size_t &ncols,
+                    size_t &m, vector[int] &indptr,
+                    vector[int] &indices, vector[double] &vals,
+                    const bool is_bin) except +
+    void write_hifir(const std_string &fn, const size_t nrows,
+                     const size_t ncols, const int *indptr,
+                     const int *indices, const double *vals,
+                     const size_t m0, const bool is_bin) except +
+    void query_hifir_info(const std_string &fn, bool &is_row, bool &is_c,
+                          bool &is_double, bool &is_real,
+                          uint64_t &nrows, uint64_t &ncols,
+                          uint64_t &nnz, uint64_t &m,
+                          const bool is_bin) except +
 
-    cdef cppclass PyHILUCSI:
-        PyHILUCSI()
+    cdef cppclass PyHIF:
+        PyHIF()
         bool empty()
         size_t levels()
         size_t nnz()
-        size_t nnz_EF()
-        size_t nnz_LDU()
+        size_t nnz_ef()
+        size_t nnz_ldu()
         size_t nrows()
         size_t ncols()
+        size_t rank()
+        size_t last_rank()
         size_t stats(const size_t entry) except +
+        void clear() except +
 
         # computing routine
         void factorize_raw(const size_t n, const int *indptr, const int *indices,
@@ -105,24 +114,33 @@ cdef extern from "hilucsi4py.hpp" namespace "hilucsi" nogil:
                            const Options &opts) except +
 
         # solving routine
-        void solve_raw(const size_t n, const double *b, double *x) except +
+        void solve_raw(const size_t n, const double *b, double *x,
+                       const bool trans, const size_t r) except +
 
         # solving with iterative refinement
-        void solve_raw(const size_t n, const int *rowptr, const int *colind,
+        void hifir_raw(const size_t n, const int *rowptr, const int *colind,
                        const double *vals, const double *b, const size_t N,
-                       double *x)
+                       double *x, const bool trans, const size_t r) except +
+
+        # multilevel matrix-vector
+        void mmultiply_raw(const size_t n, const double *b, double *x,
+                           const bool trans, const size_t r) except +
+
         shared_ptr[PyNspFilter] nsp
 
-    cdef cppclass PyHILUCSI_Mixed:
-        PyHILUCSI_Mixed()
+    cdef cppclass PyHIF_Mixed:
+        PyHIF_Mixed()
         bool empty()
         size_t levels()
         size_t nnz()
-        size_t nnz_EF()
-        size_t nnz_LDU()
+        size_t nnz_ef()
+        size_t nnz_ldu()
         size_t nrows()
         size_t ncols()
+        size_t rank()
+        size_t last_rank()
         size_t stats(const size_t entry) except +
+        void clear() except +
 
         # computing routine
         void factorize_raw(const size_t n, const int *indptr, const int *indices,
@@ -130,12 +148,18 @@ cdef extern from "hilucsi4py.hpp" namespace "hilucsi" nogil:
                            const Options &opts) except +
 
         # solving routine
-        void solve_raw(const size_t n, const double *b, double *x) except +
+        void solve_raw(const size_t n, const double *b, double *x,
+                       const bool trans, const size_t r) except +
 
         # solving with iterative refinement
-        void solve_raw(const size_t n, const int *rowptr, const int *colind,
+        void hifir_raw(const size_t n, const int *rowptr, const int *colind,
                        const double *vals, const double *b, const size_t N,
-                       double *x)
+                       double *x, const bool trans, const size_t r) except +
+
+        # multilevel matrix-vector
+        void mmultiply_raw(const size_t n, const double *b, double *x,
+                           const bool trans, const size_t r) except +
+
         shared_ptr[PyNspFilter] nsp
 
     cdef cppclass KspSolver:
@@ -160,68 +184,68 @@ cdef extern from "hilucsi4py.hpp" namespace "hilucsi" nogil:
                                     const bool with_init_guess,
                                     const bool verbose) except +
 
-    cdef cppclass PyFGMRES(KspSolver):
-        PyFGMRES()
-        PyFGMRES(shared_ptr[PyHILUCSI] M, const double rel_tol, const int rs,
-                 const size_t max_iters, const size_t max_inner_steps) except +
-        void set_M(shared_ptr[PyHILUCSI] M) except +
-        shared_ptr[PyHILUCSI] get_M()
+    cdef cppclass PyGMRES(KspSolver):
+        PyGMRES()
+        PyGMRES(shared_ptr[PyHIF] M, const double rel_tol, const int rs,
+                const size_t max_iters, const size_t max_inner_steps) except +
+        void set_M(shared_ptr[PyHIF] M) except +
+        shared_ptr[PyHIF] get_M()
 
-    cdef cppclass PyFGMRES_Mixed(KspSolver):
-        PyFGMRES_Mixed()
-        PyFGMRES_Mixed(shared_ptr[PyHILUCSI_Mixed] M, const double rel_tol,
-                       const int rs, const size_t max_iters,
-                       const size_t max_inner_steps) except +
-        void set_M(shared_ptr[PyHILUCSI_Mixed] M) except +
-        shared_ptr[PyHILUCSI_Mixed] get_M()
-    
+    cdef cppclass PyGMRES_Mixed(KspSolver):
+        PyGMRES_Mixed()
+        PyGMRES_Mixed(shared_ptr[PyHIF_Mixed] M, const double rel_tol,
+                      const int rs, const size_t max_iters,
+                      const size_t max_inner_steps) except +
+        void set_M(shared_ptr[PyHIF_Mixed] M) except +
+        shared_ptr[PyHIF_Mixed] get_M()
+
     cdef cppclass PyFQMRCGSTAB(KspSolver):
         PyFQMRCGSTAB()
-        PyFQMRCGSTAB(shared_ptr[PyHILUCSI] M, const double rel_tol,
+        PyFQMRCGSTAB(shared_ptr[PyHIF] M, const double rel_tol,
                  const size_t max_iters, const size_t innersteps) except +
-        void set_M(shared_ptr[PyHILUCSI] M) except +
-        shared_ptr[PyHILUCSI] get_M()
+        void set_M(shared_ptr[PyHIF] M) except +
+        shared_ptr[PyHIF] get_M()
 
     cdef cppclass PyFQMRCGSTAB_Mixed(KspSolver):
         PyFQMRCGSTAB_Mixed()
-        PyFQMRCGSTAB_Mixed(shared_ptr[PyHILUCSI_Mixed] M, const double rel_tol,
+        PyFQMRCGSTAB_Mixed(shared_ptr[PyHIF_Mixed] M, const double rel_tol,
                            const size_t max_iters,
                            const size_t innersteps) except +
-        void set_M(shared_ptr[PyHILUCSI_Mixed] M) except +
-        shared_ptr[PyHILUCSI_Mixed] get_M()
+        void set_M(shared_ptr[PyHIF_Mixed] M) except +
+        shared_ptr[PyHIF_Mixed] get_M()
 
     cdef cppclass PyFBICGSTAB(KspSolver):
         PyFBICGSTAB()
-        PyFBICGSTAB(shared_ptr[PyHILUCSI] M, const double rel_tol,
+        PyFBICGSTAB(shared_ptr[PyHIF] M, const double rel_tol,
                  const size_t max_iters, const size_t innersteps) except +
-        void set_M(shared_ptr[PyHILUCSI] M) except +
-        shared_ptr[PyHILUCSI] get_M()
+        void set_M(shared_ptr[PyHIF] M) except +
+        shared_ptr[PyHIF] get_M()
 
     cdef cppclass PyFBICGSTAB_Mixed(KspSolver):
         PyFBICGSTAB_Mixed()
-        PyFBICGSTAB_Mixed(shared_ptr[PyHILUCSI_Mixed] M, const double rel_tol,
+        PyFBICGSTAB_Mixed(shared_ptr[PyHIF_Mixed] M, const double rel_tol,
                            const size_t max_iters,
                            const size_t innersteps) except +
-        void set_M(shared_ptr[PyHILUCSI_Mixed] M) except +
-        shared_ptr[PyHILUCSI_Mixed] get_M()
+        void set_M(shared_ptr[PyHIF_Mixed] M) except +
+        shared_ptr[PyHIF_Mixed] get_M()
 
     cdef cppclass PyTGMRESR(KspSolver):
         PyTGMRESR()
-        PyTGMRESR(shared_ptr[PyHILUCSI] M, const double rel_tol,
+        PyTGMRESR(shared_ptr[PyHIF] M, const double rel_tol,
                  const size_t max_iters, const size_t innersteps) except +
-        void set_M(shared_ptr[PyHILUCSI] M) except +
-        shared_ptr[PyHILUCSI] get_M()
+        void set_M(shared_ptr[PyHIF] M) except +
+        shared_ptr[PyHIF] get_M()
 
     cdef cppclass PyTGMRESR_Mixed(KspSolver):
         PyTGMRESR_Mixed()
-        PyTGMRESR_Mixed(shared_ptr[PyHILUCSI_Mixed] M, const double rel_tol,
+        PyTGMRESR_Mixed(shared_ptr[PyHIF_Mixed] M, const double rel_tol,
                            const size_t max_iters,
                            const size_t innersteps) except +
-        void set_M(shared_ptr[PyHILUCSI_Mixed] M) except +
-        shared_ptr[PyHILUCSI_Mixed] get_M()
+        void set_M(shared_ptr[PyHIF_Mixed] M) except +
+        shared_ptr[PyHIF_Mixed] get_M()
 
 
-cdef extern from 'hilucsi4py.hpp' namespace 'hilucsi::ksp' nogil:
+cdef extern from "hifir4py.hpp" namespace "hif::ksp" nogil:
     cdef enum:
         INVALID_ARGS
         M_SOLVE_ERROR
@@ -229,7 +253,7 @@ cdef extern from 'hilucsi4py.hpp' namespace 'hilucsi::ksp' nogil:
         DIVERGED
         STAGNATED
         BREAK_DOWN
-    
+
     cdef enum:
         TRADITION
         ITERATIVE_REFINE

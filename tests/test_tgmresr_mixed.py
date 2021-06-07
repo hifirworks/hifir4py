@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 ###############################################################################
-#                 This file is part of HILUCSI4PY project                     #
+#                 This file is part of HIFIR4PY project                       #
 ###############################################################################
 
 from scipy.sparse import random
 import numpy as np
 
-from hilucsi4py import TGMRESR_Mixed
+from hifir4py import TGMRESR_Mixed
 
 
 def test_tgmresr_mixed():
