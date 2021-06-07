@@ -3,11 +3,11 @@
 User Interface
 ==============
 
-.. currentmodule:: hilucsi4py
+.. currentmodule:: hifir4py
 
-.. automodule:: hilucsi4py
+.. automodule:: hifir4py
     :members:
-    :exclude-members: hilucsi4py.get_include
+    :exclude-members: hifir4py.get_include
 
-.. autoclass:: hilucsi4py._hilucsi4py.Options
+.. autoclass:: hifir4py._hifir4py.Params
     :members:

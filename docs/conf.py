@@ -18,16 +18,16 @@
 
 # -- Project information -----------------------------------------------------
 
-project = "hilucsi4py"
+project = "hifir4py"
 copyright = "2019, NumGeom Group at Stony Brook University"
 author = "Qiao Chen"
 
 # The short X.Y version
-import hilucsi4py
+import hifir4py
 
-version = hilucsi4py.__version__
+version = hifir4py.__version__
 # The full version, including alpha/beta/rc tags
-release = "Alpha"
+release = "GA"
 
 # copy readme
 from shutil import copyfile
@@ -145,14 +145,14 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "hilucsi4py.tex", "hilucsi4py Documentation", author, "manual")
+    (master_doc, "hifir4py.tex", "hifir4py Documentation", author, "manual")
 ]
 
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "hilucsi4py", "hilucsi4py Documentation", [author], 1)]
+man_pages = [(master_doc, "hifir4py", "hifir4py Documentation", [author], 1)]
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -162,10 +162,10 @@ man_pages = [(master_doc, "hilucsi4py", "hilucsi4py Documentation", [author], 1)
 texinfo_documents = [
     (
         master_doc,
-        "hilucsi4py",
-        "hilucsi4py Documentation",
+        "hifir4py",
+        "hifir4py Documentation",
         author,
-        "hilucsi4py",
+        "hifir4py",
         "One line description of project.",
         "Miscellaneous",
     )

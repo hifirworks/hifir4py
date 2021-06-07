@@ -3,7 +3,7 @@
 Utilities
 =========
 
-.. currentmodule:: hilucsi4py.utils
+.. currentmodule:: hifir4py.utils
 
-.. automodule:: hilucsi4py.utils
+.. automodule:: hifir4py.utils
     :members:
