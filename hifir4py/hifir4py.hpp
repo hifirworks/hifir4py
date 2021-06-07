@@ -300,18 +300,16 @@ class KspAdapt : public Ksp<MType, ValueType>, public KspSolver {
   }
 };
 
-using PyGMRES             = KspAdapt<ksp::GMRES>;       // gmres
-using PyFGMRES            = KspAdapt<ksp::FGMRES>;      // fgmres
-using PyFQMRCGSTAB        = KspAdapt<ksp::FQMRCGSTAB>;  // fqmrcgstab
-using PyFBICGSTAB         = KspAdapt<ksp::FBICGSTAB>;   // fbicgstab
-using PyTGMRESR           = KspAdapt<ksp::TGMRESR>;
-using PyFGMRES_Null       = KspAdapt<ksp::GMRES_Null>;
-using PyGMRES_Mixed       = KspAdapt<ksp::GMRES, PyHIF_Mixed, double>;
-using PyFGMRES_Mixed      = KspAdapt<ksp::FGMRES, PyHIF_Mixed, double>;
-using PyFQMRCGSTAB_Mixed  = KspAdapt<ksp::FQMRCGSTAB, PyHIF_Mixed, double>;
-using PyFBICGSTAB_Mixed   = KspAdapt<ksp::FBICGSTAB, PyHIF_Mixed, double>;
-using PyTGMRESR_Mixed     = KspAdapt<ksp::TGMRESR, PyHIF_Mixed, double>;
-using PyFGMRES_Null_Mixed = KspAdapt<ksp::GMRES_Null, PyHIF_Mixed, double>;
+using PyGMRES            = KspAdapt<ksp::GMRES>;       // gmres
+using PyFGMRES           = KspAdapt<ksp::FGMRES>;      // fgmres
+using PyFQMRCGSTAB       = KspAdapt<ksp::FQMRCGSTAB>;  // fqmrcgstab
+using PyFBICGSTAB        = KspAdapt<ksp::FBICGSTAB>;   // fbicgstab
+using PyTGMRESR          = KspAdapt<ksp::TGMRESR>;
+using PyGMRES_Mixed      = KspAdapt<ksp::GMRES, PyHIF_Mixed, double>;
+using PyFGMRES_Mixed     = KspAdapt<ksp::FGMRES, PyHIF_Mixed, double>;
+using PyFQMRCGSTAB_Mixed = KspAdapt<ksp::FQMRCGSTAB, PyHIF_Mixed, double>;
+using PyFBICGSTAB_Mixed  = KspAdapt<ksp::FBICGSTAB, PyHIF_Mixed, double>;
+using PyTGMRESR_Mixed    = KspAdapt<ksp::TGMRESR, PyHIF_Mixed, double>;
 
 }  // namespace hif
 
