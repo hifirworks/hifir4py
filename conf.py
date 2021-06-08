@@ -69,6 +69,8 @@ class BuildExt(build_ext):
                 opts.append("-std=c++1z")
             else:
                 opts.append("-std=c++11")
+            if test_switch("-ffast-math"):
+                opts.append("-ffast-math")
             if test_switch("-rdynamic"):
                 opts.append("-rdynamic")
             if test_switch("-O3") and "-O3" not in self.compiler.compiler_so:
