@@ -201,6 +201,21 @@ cdef extern from "hifir4py.hpp" namespace "hif" nogil:
         void set_M(shared_ptr[PyHIF_Mixed] M) except +
         shared_ptr[PyHIF_Mixed] get_M()
 
+    cdef cppclass PyFGMRES(KspSolver):
+        PyFGMRES()
+        PyFGMRES(shared_ptr[PyHIF] M, const double rel_tol, const int rs,
+                 const size_t max_iters, const size_t max_inner_steps) except +
+        void set_M(shared_ptr[PyHIF] M) except +
+        shared_ptr[PyHIF] get_M()
+
+    cdef cppclass PyFGMRES_Mixed(KspSolver):
+        PyFGMRES_Mixed()
+        PyFGMRES_Mixed(shared_ptr[PyHIF_Mixed] M, const double rel_tol,
+                       const int rs, const size_t max_iters,
+                       const size_t max_inner_steps) except +
+        void set_M(shared_ptr[PyHIF_Mixed] M) except +
+        shared_ptr[PyHIF_Mixed] get_M()
+
     cdef cppclass PyFQMRCGSTAB(KspSolver):
         PyFQMRCGSTAB()
         PyFQMRCGSTAB(shared_ptr[PyHIF] M, const double rel_tol,

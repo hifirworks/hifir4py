@@ -215,7 +215,7 @@ def create_ksp(ksp, *args, **kw):
     solver names, i.e.,
 
         >>> create_ksp("show")
-        ["gmres", "qmrcgstab", "bicgstab", "gmresr"]
+        ["gmres", "qmrcgstab", "bicgstab", "gmresr", "fgmres"]
 
     References
     ----------
@@ -241,10 +241,12 @@ def create_ksp(ksp, *args, **kw):
     """
     ksp = ksp.lower()
     if ksp in ("show", "query"):
-        return ["gmres", "qmrcgstab", "bicgstab", "gmresr"]
+        return ["gmres", "qmrcgstab", "bicgstab", "gmresr", "fgmres"]
     mixed = kw.pop("mixed", False)
     if ksp.find("gmresr") > -1:
         return TGMRESR(*args, **kw) if not mixed else TGMRESR_Mixed(*args, **kw)
+    if ksp.find("fgmres") > -1:
+        return FGMRES(*args, **kw) if not mixed else FGMRES_Mixed(*args, *kw)
     if ksp.find("gmres") > -1:
         return GMRES(*args, **kw) if not mixed else GMRES_Mixed(*args, *kw)
     if ksp.find("qmrcgstab") > -1:

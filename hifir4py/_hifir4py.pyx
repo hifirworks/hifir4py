@@ -51,8 +51,10 @@ cdef extern from "hifir4py.hpp" namespace 'hif::internal' nogil:
     bool option_dtypes[_HIF_TOTAL_OPTIONS]
 
 
-ctypedef hif.PyGMRES *fgmres_ptr
-ctypedef hif.PyGMRES_Mixed *fgmres_mixed_ptr
+ctypedef hif.PyGMRES *gmres_ptr
+ctypedef hif.PyGMRES_Mixed *gmres_mixed_ptr
+ctypedef hif.PyFGMRES *fgmres_ptr
+ctypedef hif.PyFGMRES_Mixed *fgmres_mixed_ptr
 ctypedef hif.PyFQMRCGSTAB *fqmrcgstab_ptr
 ctypedef hif.PyFQMRCGSTAB_Mixed *fqmrcgstab_mixed_ptr
 ctypedef hif.PyFBICGSTAB *fbicgstab_ptr
@@ -110,6 +112,8 @@ __all__ = [
     "KspSolver",
     "GMRES",
     "GMRES_Mixed",
+    "FGMRES",
+    "FGMRES_Mixed",
     "FQMRCGSTAB",
     "FQMRCGSTAB_Mixed",
     "FBICGSTAB",
@@ -1205,14 +1209,11 @@ def _handle_kernel(str kernel):
 cdef class KspSolver:
     r"""Flexible KSP base implementation with rhs preconditioner
 
-    The KSP base implementation has three modes (kernels): the first one is the
+    The KSP base implementation has two modes (kernels): the first one is the
     ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
     preconditioner; the second one is ``iter-refine`` fashion, where
     :math:`\boldsymbol{M}` is treated as the splitted term in stationary
-    iteration combining with the input matrix :math:`\boldsymbol{A}`; finally,
-    the last fashion is an extension to ``iter-refine`` with Chebyshev
-    acceleration, which requires estimations of the largest and smallest
-    eigenvalues.
+    iteration combining with the input matrix :math:`\boldsymbol{A}`.
     """
     cdef KSP_ptr solver
 
@@ -1254,7 +1255,7 @@ cdef class KspSolver:
 
     @property
     def inner_steps(self):
-        """int: maximum inner iterations for IR-like inner iterations (4)"""
+        """int: inner iterations for IR-like inner iterations (4)"""
         return deref(self.solver).get_inner_steps()
 
     @inner_steps.setter
@@ -1381,16 +1382,13 @@ cdef class KspSolver:
 
 
 cdef class GMRES(KspSolver):
-    r"""Flexible GMRES implementation with rhs preconditioner
+    r"""GMRES implementation with rhs preconditioner
 
-    The GMRES implementation has three modes (kernels): the first one is the
+    The GMRES implementation has two modes (kernels): the first one is the
     ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
     preconditioner; the second one is ``iter-refine`` fashion, where
     :math:`\boldsymbol{M}` is treated as the splitted term in stationary
-    iteration combining with the input matrix :math:`\boldsymbol{A}`; finally,
-    the last fashion is an extension to ``iter-refine`` with Chebyshev
-    acceleration, which requires estimations of the largest and smallest
-    eigenvalues.
+    iteration combining with the input matrix :math:`\boldsymbol{A}`.
 
     Parameters
     ----------
@@ -1402,8 +1400,8 @@ cdef class GMRES(KspSolver):
         maximum iterations, default is 500
     restart : int, optional
         restart in GMRES, default is 30
-    max_inners : int, optional
-        maximum inner iterations used in IR style kernel, default is 2
+    inner_steps : int, optional
+        inner iterations used in IR style kernel, default is 2
     lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
     lamb2 : float, optional
@@ -1428,7 +1426,7 @@ cdef class GMRES(KspSolver):
         rtol=1e-6,
         restart=30,
         maxit=500,
-        max_inners=2,
+        inner_steps=2,
         **kw
     ):
         pass
@@ -1439,16 +1437,236 @@ cdef class GMRES(KspSolver):
         double rtol=1e-6,
         int restart=30,
         int maxit=500,
-        int max_inners=2,
+        int inner_steps=2,
         **kw
     ):
         self.solver.reset(new hif.PyGMRES())
+        if M is not None:
+            deref(<gmres_ptr>self.solver.get()).set_M(M.M)
+        deref(self.solver).set_rtol(rtol)
+        deref(self.solver).set_restart(restart)
+        deref(self.solver).set_maxit(maxit)
+        deref(self.solver).set_inner_steps(inner_steps)
+        deref(self.solver).check_pars()
+        lamb1 = kw.pop("lamb1", None)
+        if lamb1 is not None:
+            deref(self.solver).set_lamb1(lamb1)
+        lamb2 = kw.pop("lamb2", None)
+        if lamb2 is not None:
+            deref(self.solver).set_lamb2(lamb2)
+
+    @property
+    def restart(self):
+        """int: restart for GMRES (30)"""
+        return deref(self.solver).get_restart()
+
+    @restart.setter
+    def restart(self, int rs):
+        if rs <= 0:
+            raise ValueError('restart must be positive integer')
+        deref(self.solver).set_restart(rs)
+
+    @property
+    def M(self):
+        """HIF: get preconditioner"""
+        cdef:
+            HIF _M = HIF()
+            gmres_ptr child = <gmres_ptr>self.solver.get()
+        if not deref(child).get_M():
+            # empty
+            deref(child).set_M(_M.M)
+        else:
+            _M.M = deref(child).get_M()
+        return _M
+
+    @M.setter
+    def M(self, HIF M):
+        deref(<gmres_ptr>self.solver.get()).set_M(M.M)
+
+    def __str__(self):
+        fmt = self.__class__.__name__
+        fmt += "\nrtol={}\nmaxit={}\nrestart={}\n".format(
+            self.rtol, self.maxit, self.restart
+        )
+        return fmt
+
+
+cdef class GMRES_Mixed(KspSolver):
+    r"""Flexible GMRES implementation with rhs preconditioner (mixed precision)
+
+    The GMRES implementation has two modes (kernels): the first one is the
+    ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
+    preconditioner; the second one is ``iter-refine`` fashion, where
+    :math:`\boldsymbol{M}` is treated as the splitted term in stationary
+    iteration combining with the input matrix :math:`\boldsymbol{A}`.
+
+    Parameters
+    ----------
+    M : HIF_Mixed, optional
+        preconditioner
+    rtol : float, optional
+        relative tolerance, default is 1e-6
+    maxit : int, optional
+        maximum iterations, default is 500
+    restart : int, optional
+        restart in GMRES, default is 30
+    inner_steps : int, optional
+        inner iterations used in IR style kernel, default is 2
+    lamb1 : float, optional
+        if given, then used as the largest eigenvalue estimation
+    lamb2 : float, optional
+        if given, then used as the smallest eigenvalue estimation
+
+    Examples
+    --------
+
+    >>> from scipy.sparse import random
+    >>> from hifir4py import *
+    >>> import numpy as np
+    >>> A = random(10,10,0.5)
+    >>> M = HIF_Mixed()
+    >>> M.factorize(A)
+    >>> solver = GMRES_Mixed(M)
+    >>> x = solver.solve(A, np.random.rand(10))
+    """
+
+    def __init__(
+        self,
+        M=None,
+        rtol=1e-6,
+        restart=30,
+        maxit=500,
+        inner_steps=2,
+        **kw
+    ):
+        pass
+
+    def __cinit__(
+        self,
+        HIF_Mixed M=None,
+        double rtol=1e-6,
+        int restart=30,
+        int maxit=500,
+        int inner_steps=2,
+        **kw
+    ):
+        self.solver.reset(new hif.PyGMRES_Mixed())
+        if M is not None:
+            deref(<gmres_mixed_ptr>self.solver.get()).set_M(M.M)
+        deref(self.solver).set_rtol(rtol)
+        deref(self.solver).set_restart(restart)
+        deref(self.solver).set_maxit(maxit)
+        deref(self.solver).set_inner_steps(inner_steps)
+        deref(self.solver).check_pars()
+        lamb1 = kw.pop("lamb1", None)
+        if lamb1 is not None:
+            deref(self.solver).set_lamb1(lamb1)
+        lamb2 = kw.pop("lamb2", None)
+        if lamb2 is not None:
+            deref(self.solver).set_lamb2(lamb2)
+
+    @property
+    def restart(self):
+        """int: restart for GMRES (30)"""
+        return deref(self.solver).get_restart()
+
+    @restart.setter
+    def restart(self, int rs):
+        if rs <= 0:
+            raise ValueError('restart must be positive integer')
+        deref(self.solver).set_restart(rs)
+
+    @property
+    def M(self):
+        """HIF_Mixed: get preconditioner"""
+        cdef:
+            HIF_Mixed _M = HIF_Mixed()
+            gmres_mixed_ptr child = <gmres_mixed_ptr>self.solver.get()
+        if not deref(child).get_M():
+            # empty
+            deref(child).set_M(_M.M)
+        else:
+            _M.M = deref(child).get_M()
+        return _M
+
+    @M.setter
+    def M(self, HIF_Mixed M):
+        deref(<gmres_mixed_ptr>self.solver.get()).set_M(M.M)
+
+    def __str__(self):
+        fmt = self.__class__.__name__
+        fmt += "\nrtol={}\nmaxit={}\nrestart={}\n".format(
+            self.rtol, self.maxit, self.restart
+        )
+        return fmt
+
+
+cdef class FGMRES(KspSolver):
+    r"""Flexible GMRES (FGMRES) implementation with rhs preconditioner
+
+    The FGMRES implementation has two modes (kernels): the first one is the
+    ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
+    preconditioner; the second one is ``iter-refine`` fashion, where
+    :math:`\boldsymbol{M}` is treated as the splitted term in stationary
+    iteration combining with the input matrix :math:`\boldsymbol{A}`.
+
+    Parameters
+    ----------
+    M : HIF, optional
+        preconditioner
+    rtol : float, optional
+        relative tolerance, default is 1e-6
+    maxit : int, optional
+        maximum iterations, default is 500
+    restart : int, optional
+        restart in GMRES, default is 30
+    inner_steps : int, optional
+        inner iterations used in IR style kernel, default is 2
+    lamb1 : float, optional
+        if given, then used as the largest eigenvalue estimation
+    lamb2 : float, optional
+        if given, then used as the smallest eigenvalue estimation
+
+    Examples
+    --------
+
+    >>> from scipy.sparse import random
+    >>> from hifir4py import *
+    >>> import numpy as np
+    >>> A = random(10,10,0.5)
+    >>> M = HIF()
+    >>> M.factorize(A)
+    >>> solver = FGMRES(M)
+    >>> x = solver.solve(A, np.random.rand(10))
+    """
+
+    def __init__(
+        self,
+        M=None,
+        rtol=1e-6,
+        restart=30,
+        maxit=500,
+        inner_steps=2,
+        **kw
+    ):
+        pass
+
+    def __cinit__(
+        self,
+        HIF M=None,
+        double rtol=1e-6,
+        int restart=30,
+        int maxit=500,
+        int inner_steps=2,
+        **kw
+    ):
+        self.solver.reset(new hif.PyFGMRES())
         if M is not None:
             deref(<fgmres_ptr>self.solver.get()).set_M(M.M)
         deref(self.solver).set_rtol(rtol)
         deref(self.solver).set_restart(restart)
         deref(self.solver).set_maxit(maxit)
-        deref(self.solver).set_inner_steps(max_inners)
+        deref(self.solver).set_inner_steps(inner_steps)
         deref(self.solver).check_pars()
         lamb1 = kw.pop("lamb1", None)
         if lamb1 is not None:
@@ -1493,17 +1711,14 @@ cdef class GMRES(KspSolver):
         return fmt
 
 
-cdef class GMRES_Mixed(KspSolver):
+cdef class FGMRES_Mixed(KspSolver):
     r"""Flexible GMRES implementation with rhs preconditioner (mixed precision)
 
-    The GMRES implementation has three modes (kernels): the first one is the
+    The FGMRES implementation has two modes (kernels): the first one is the
     ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
     preconditioner; the second one is ``iter-refine`` fashion, where
     :math:`\boldsymbol{M}` is treated as the splitted term in stationary
-    iteration combining with the input matrix :math:`\boldsymbol{A}`; finally,
-    the last fashion is an extension to ``iter-refine`` with Chebyshev
-    acceleration, which requires estimations of the largest and smallest
-    eigenvalues.
+    iteration combining with the input matrix :math:`\boldsymbol{A}`.
 
     Parameters
     ----------
@@ -1515,8 +1730,8 @@ cdef class GMRES_Mixed(KspSolver):
         maximum iterations, default is 500
     restart : int, optional
         restart in GMRES, default is 30
-    max_inners : int, optional
-        maximum inner iterations used in IR style kernel, default is 2
+    inner_steps : int, optional
+        inner iterations used in IR style kernel, default is 2
     lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
     lamb2 : float, optional
@@ -1541,7 +1756,7 @@ cdef class GMRES_Mixed(KspSolver):
         rtol=1e-6,
         restart=30,
         maxit=500,
-        max_inners=2,
+        inner_steps=2,
         **kw
     ):
         pass
@@ -1552,16 +1767,16 @@ cdef class GMRES_Mixed(KspSolver):
         double rtol=1e-6,
         int restart=30,
         int maxit=500,
-        int max_inners=2,
+        int inner_steps=2,
         **kw
     ):
-        self.solver.reset(new hif.PyGMRES_Mixed())
+        self.solver.reset(new hif.PyFGMRES_Mixed())
         if M is not None:
             deref(<fgmres_mixed_ptr>self.solver.get()).set_M(M.M)
         deref(self.solver).set_rtol(rtol)
         deref(self.solver).set_restart(restart)
         deref(self.solver).set_maxit(maxit)
-        deref(self.solver).set_inner_steps(max_inners)
+        deref(self.solver).set_inner_steps(inner_steps)
         deref(self.solver).check_pars()
         lamb1 = kw.pop("lamb1", None)
         if lamb1 is not None:
@@ -1609,14 +1824,11 @@ cdef class GMRES_Mixed(KspSolver):
 cdef class FQMRCGSTAB(KspSolver):
     r"""Flexible QMRCGSTAB implementation with rhs preconditioner
 
-    The FQMRCGSTAB implementation has three modes (kernels): the first one is the
+    The FQMRCGSTAB implementation has two modes (kernels): the first one is the
     ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
     preconditioner; the second one is ``iter-refine`` fashion, where
     :math:`\boldsymbol{M}` is treated as the splitted term in stationary
-    iteration combining with the input matrix :math:`\boldsymbol{A}`; finally,
-    the last fashion is an extension to ``iter-refine`` with Chebyshev
-    acceleration, which requires estimations of the largest and smallest
-    eigenvalues.
+    iteration combining with the input matrix :math:`\boldsymbol{A}`.
 
     Parameters
     ----------
@@ -1627,7 +1839,7 @@ cdef class FQMRCGSTAB(KspSolver):
     restart : int, optional
         restart in GMRES, default is 30
     innersteps : int, optional
-        maximum inner iterations used in IR style kernel, default is 4
+        inner iterations used in IR style kernel, default is 4
     lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
     lamb2 : float, optional
@@ -1692,14 +1904,11 @@ cdef class FQMRCGSTAB(KspSolver):
 cdef class FQMRCGSTAB_Mixed(KspSolver):
     r"""Flexible QMRCGSTAB implementation with rhs preconditioner (mixed-prec)
 
-    The FQMRCGSTAB implementation has three modes (kernels): the first one is the
+    The FQMRCGSTAB implementation has two modes (kernels): the first one is the
     ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
     preconditioner; the second one is ``iter-refine`` fashion, where
     :math:`\boldsymbol{M}` is treated as the splitted term in stationary
-    iteration combining with the input matrix :math:`\boldsymbol{A}`; finally,
-    the last fashion is an extension to ``iter-refine`` with Chebyshev
-    acceleration, which requires estimations of the largest and smallest
-    eigenvalues.
+    iteration combining with the input matrix :math:`\boldsymbol{A}`.
 
     Parameters
     ----------
@@ -1710,7 +1919,7 @@ cdef class FQMRCGSTAB_Mixed(KspSolver):
     maxit : int, optional
         maximum iterations, default is 500
     innersteps : int, optional
-        maximum inner iterations used in IR style kernel, default is 2
+        inner iterations used in IR style kernel, default is 2
     lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
     lamb2 : float, optional
@@ -1775,14 +1984,11 @@ cdef class FQMRCGSTAB_Mixed(KspSolver):
 cdef class FBICGSTAB(KspSolver):
     r"""Flexible BICGSTAB implementation with rhs preconditioner
 
-    The FBICGSTAB implementation has three modes (kernels): the first one is the
+    The FBICGSTAB implementation has two modes (kernels): the first one is the
     ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
     preconditioner; the second one is ``iter-refine`` fashion, where
     :math:`\boldsymbol{M}` is treated as the splitted term in stationary
-    iteration combining with the input matrix :math:`\boldsymbol{A}`; finally,
-    the last fashion is an extension to ``iter-refine`` with Chebyshev
-    acceleration, which requires estimations of the largest and smallest
-    eigenvalues.
+    iteration combining with the input matrix :math:`\boldsymbol{A}`.
 
     Parameters
     ----------
@@ -1793,7 +1999,7 @@ cdef class FBICGSTAB(KspSolver):
     restart : int, optional
         restart in GMRES, default is 30
     innersteps : int, optional
-        maximum inner iterations used in IR style kernel, default is 2
+        inner iterations used in IR style kernel, default is 2
     lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
     lamb2 : float, optional
@@ -1858,14 +2064,11 @@ cdef class FBICGSTAB(KspSolver):
 cdef class FBICGSTAB_Mixed(KspSolver):
     r"""Flexible BICGSTAB implementation with rhs preconditioner (mixed-prec)
 
-    The FBICGSTAB implementation has three modes (kernels): the first one is the
+    The FBICGSTAB implementation has two modes (kernels): the first one is the
     ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
     preconditioner; the second one is ``iter-refine`` fashion, where
     :math:`\boldsymbol{M}` is treated as the splitted term in stationary
-    iteration combining with the input matrix :math:`\boldsymbol{A}`; finally,
-    the last fashion is an extension to ``iter-refine`` with Chebyshev
-    acceleration, which requires estimations of the largest and smallest
-    eigenvalues.
+    iteration combining with the input matrix :math:`\boldsymbol{A}`.
 
     Parameters
     ----------
@@ -1876,7 +2079,7 @@ cdef class FBICGSTAB_Mixed(KspSolver):
     maxit : int, optional
         maximum iterations, default is 500
     innersteps : int, optional
-        maximum inner iterations used in IR style kernel, default is 2
+        inner iterations used in IR style kernel, default is 2
     lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
     lamb2 : float, optional
@@ -1941,14 +2144,11 @@ cdef class FBICGSTAB_Mixed(KspSolver):
 cdef class TGMRESR(KspSolver):
     r"""Truncated GMRESR implementation with rhs preconditioner
 
-    The TGMRESR implementation has three modes (kernels): the first one is the
+    The TGMRESR implementation has two modes (kernels): the first one is the
     ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
     preconditioner; the second one is ``iter-refine`` fashion, where
     :math:`\boldsymbol{M}` is treated as the splitted term in stationary
-    iteration combining with the input matrix :math:`\boldsymbol{A}`; finally,
-    the last fashion is an extension to ``iter-refine`` with Chebyshev
-    acceleration, which requires estimations of the largest and smallest
-    eigenvalues.
+    iteration combining with the input matrix :math:`\boldsymbol{A}`.
 
     Parameters
     ----------
@@ -1960,8 +2160,8 @@ cdef class TGMRESR(KspSolver):
         maximum iterations, default is 500
     cycle : int, optional
         truncated cycle in GMRESR, default is 10
-    max_inners : int, optional
-        maximum inner iterations used in IR style kernel, default is 2
+    inner_steps : int, optional
+        inner iterations used in IR style kernel, default is 2
     lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
     lamb2 : float, optional
@@ -1986,7 +2186,7 @@ cdef class TGMRESR(KspSolver):
         rtol=1e-6,
         cycle=10,
         maxit=500,
-        max_inners=2,
+        inner_steps=2,
         **kw
     ):
         pass
@@ -1997,7 +2197,7 @@ cdef class TGMRESR(KspSolver):
         double rtol=1e-6,
         int cycle=10,
         int maxit=500,
-        int max_inners=2,
+        int inner_steps=2,
         **kw
     ):
         self.solver.reset(new hif.PyGMRES())
@@ -2006,7 +2206,7 @@ cdef class TGMRESR(KspSolver):
         deref(self.solver).set_rtol(rtol)
         deref(self.solver).set_restart(cycle)  # use restart for cycle
         deref(self.solver).set_maxit(maxit)
-        deref(self.solver).set_inner_steps(max_inners)
+        deref(self.solver).set_inner_steps(inner_steps)
         deref(self.solver).check_pars()
         lamb1 = kw.pop('lamb1', None)
         if lamb1 is not None:
@@ -2054,14 +2254,11 @@ cdef class TGMRESR(KspSolver):
 cdef class TGMRESR_Mixed(KspSolver):
     r"""Truncated GMRESR implementation with rhs preconditioner (mixed precision)
 
-    The TGMRESR implementation has three modes (kernels): the first one is the
+    The TGMRESR implementation has two modes (kernels): the first one is the
     ``traditional`` kernel by treating :math:`\boldsymbol{M}` as the rhs
     preconditioner; the second one is ``iter-refine`` fashion, where
     :math:`\boldsymbol{M}` is treated as the splitted term in stationary
-    iteration combining with the input matrix :math:`\boldsymbol{A}`; finally,
-    the last fashion is an extension to ``iter-refine`` with Chebyshev
-    acceleration, which requires estimations of the largest and smallest
-    eigenvalues.
+    iteration combining with the input matrix :math:`\boldsymbol{A}`.
 
     Parameters
     ----------
@@ -2073,8 +2270,8 @@ cdef class TGMRESR_Mixed(KspSolver):
         maximum iterations, default is 500
     cycle : int, optional
         truncated cycle in GMRESR, default is 10
-    max_inners : int, optional
-        maximum inner iterations used in IR style kernel, default is 2
+    inner_steps : int, optional
+        inner iterations used in IR style kernel, default is 2
     lamb1 : float, optional
         if given, then used as the largest eigenvalue estimation
     lamb2 : float, optional
@@ -2093,7 +2290,7 @@ cdef class TGMRESR_Mixed(KspSolver):
     >>> x = solver.solve(A, np.random.rand(10))
     """
 
-    def __init__(self, M=None, rtol=1e-6, cycle=10, maxit=500, max_inners=2, **kw):
+    def __init__(self, M=None, rtol=1e-6, cycle=10, maxit=500, inner_steps=2, **kw):
         pass
 
     def __cinit__(
@@ -2102,7 +2299,7 @@ cdef class TGMRESR_Mixed(KspSolver):
         double rtol=1e-6,
         int cycle=10,
         int maxit=500,
-        int max_inners=2,
+        int inner_steps=2,
         **kw,
     ):
         self.solver.reset(new hif.PyGMRES_Mixed())
@@ -2111,7 +2308,7 @@ cdef class TGMRESR_Mixed(KspSolver):
         deref(self.solver).set_rtol(rtol)
         deref(self.solver).set_restart(cycle)
         deref(self.solver).set_maxit(maxit)
-        deref(self.solver).set_inner_steps(max_inners)
+        deref(self.solver).set_inner_steps(inner_steps)
         deref(self.solver).check_pars()
         lamb1 = kw.pop('lamb1', None)
         if lamb1 is not None:
