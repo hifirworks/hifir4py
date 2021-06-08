@@ -59,6 +59,8 @@ ctypedef hif.PyFQMRCGSTAB *fqmrcgstab_ptr
 ctypedef hif.PyFQMRCGSTAB_Mixed *fqmrcgstab_mixed_ptr
 ctypedef hif.PyFBICGSTAB *fbicgstab_ptr
 ctypedef hif.PyFBICGSTAB_Mixed *fbicgstab_mixed_ptr
+ctypedef hif.PyTGMRESR *tgmresr_ptr
+ctypedef hif.PyTGMRESR_Mixed *tgmresr_mixed_ptr
 
 
 import os
@@ -2200,9 +2202,9 @@ cdef class TGMRESR(KspSolver):
         int inner_steps=2,
         **kw
     ):
-        self.solver.reset(new hif.PyGMRES())
+        self.solver.reset(new hif.PyTGMRESR())
         if M is not None:
-            deref(<fgmres_ptr>self.solver.get()).set_M(M.M)
+            deref(<tgmresr_ptr>self.solver.get()).set_M(M.M)
         deref(self.solver).set_rtol(rtol)
         deref(self.solver).set_restart(cycle)  # use restart for cycle
         deref(self.solver).set_maxit(maxit)
@@ -2231,7 +2233,7 @@ cdef class TGMRESR(KspSolver):
         """HIF: get preconditioner"""
         cdef:
             HIF _M = HIF()
-            fgmres_ptr child = <fgmres_ptr>self.solver.get()
+            tgmresr_ptr child = <tgmresr_ptr>self.solver.get()
         if not deref(child).get_M():
             # empty
             deref(child).set_M(_M.M)
@@ -2241,7 +2243,7 @@ cdef class TGMRESR(KspSolver):
 
     @M.setter
     def M(self, HIF M):
-        deref(<fgmres_ptr>self.solver.get()).set_M(M.M)
+        deref(<tgmresr_ptr>self.solver.get()).set_M(M.M)
 
     def __str__(self):
         fmt = self.__class__.__name__
@@ -2302,9 +2304,9 @@ cdef class TGMRESR_Mixed(KspSolver):
         int inner_steps=2,
         **kw,
     ):
-        self.solver.reset(new hif.PyGMRES_Mixed())
+        self.solver.reset(new hif.PyTGMRESR_Mixed())
         if M is not None:
-            deref(<fgmres_mixed_ptr>self.solver.get()).set_M(M.M)
+            deref(<tgmresr_mixed_ptr>self.solver.get()).set_M(M.M)
         deref(self.solver).set_rtol(rtol)
         deref(self.solver).set_restart(cycle)
         deref(self.solver).set_maxit(maxit)
@@ -2333,7 +2335,7 @@ cdef class TGMRESR_Mixed(KspSolver):
         """HIF_Mixed: get preconditioner"""
         cdef:
             HIF_Mixed _M = HIF_Mixed()
-            fgmres_mixed_ptr child = <fgmres_mixed_ptr>self.solver.get()
+            tgmresr_mixed_ptr child = <tgmresr_mixed_ptr>self.solver.get()
         if not deref(child).get_M():
             # empty
             deref(child).set_M(_M.M)
@@ -2343,7 +2345,7 @@ cdef class TGMRESR_Mixed(KspSolver):
 
     @M.setter
     def M(self, HIF_Mixed M):
-        deref(<fgmres_mixed_ptr>self.solver.get()).set_M(M.M)
+        deref(<tgmresr_mixed_ptr>self.solver.get()).set_M(M.M)
 
     def __str__(self):
         fmt = self.__class__.__name__
