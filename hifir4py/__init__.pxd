@@ -104,7 +104,8 @@ cdef extern from "hifir4py.hpp" namespace "hif" nogil:
         size_t nrows()
         size_t ncols()
         size_t rank()
-        size_t last_rank()
+        size_t schur_rank()
+        size_t schur_size()
         size_t stats(const size_t entry) except +
         void clear() except +
 
@@ -138,7 +139,8 @@ cdef extern from "hifir4py.hpp" namespace "hif" nogil:
         size_t nrows()
         size_t ncols()
         size_t rank()
-        size_t last_rank()
+        size_t schur_rank()
+        size_t schur_size()
         size_t stats(const size_t entry) except +
         void clear() except +
 

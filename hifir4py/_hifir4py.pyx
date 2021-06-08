@@ -540,9 +540,14 @@ cdef class HIF:
         return deref(self.M).rank()
 
     @property
-    def last_rank(self):
+    def schur_rank(self):
         """int: final Schur complement rank"""
-        return deref(self.M).last_rank()
+        return deref(self.M).schur_rank()
+
+    @property
+    def schur_size(self):
+        """int: final Schur complement size"""
+        return deref(self.M).schur_size()
 
     def stats(self, int entry):
         """Get the statistics information
@@ -872,9 +877,14 @@ cdef class HIF_Mixed:
         return deref(self.M).rank()
 
     @property
-    def last_rank(self):
+    def schur_rank(self):
         """int: final Schur complement rank"""
-        return deref(self.M).last_rank()
+        return deref(self.M).schur_rank()
+
+    @property
+    def schur_size(self):
+        """int: final Schur complement size"""
+        return deref(self.M).schur_size()
 
     def stats(self, int entry):
         """Get the statistics information
