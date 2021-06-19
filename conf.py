@@ -86,6 +86,7 @@ class BuildExt(build_ext):
 
 
 _pyx = glob.glob(os.path.join("hifir4py", "*.pyx"))
+_pyx += glob.glob(os.path.join("hifir4py", "_hifir", "*.pyx"))
 exts = []
 
 for f in _pyx:
