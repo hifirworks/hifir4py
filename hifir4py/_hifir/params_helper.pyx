@@ -22,6 +22,7 @@
 # Author(s):
 #   Qiao Chen
 
+from libcpp cimport bool
 from libcpp.string cimport string as std_string
 from libcpp.vector cimport vector
 cimport hifir4py
@@ -29,6 +30,10 @@ cimport hifir4py
 
 cdef extern from "hifir4py.hpp" namespace "hifir4py" nogil:
     vector[std_string] params_pos2tag
+
+
+cdef extern from "hifir4py.hpp" namespace "hif::internal" nogil:
+    bool option_dtypes[hifir4py.NUM_PARAMS]
 
 
 # Total number of parameters
@@ -40,6 +45,7 @@ __VERBOSE_INFO__ = hifir4py.VERBOSE_INFO
 __VERBOSE_PRE__ = hifir4py.VERBOSE_PRE
 __VERBOSE_FAC__ = hifir4py.VERBOSE_FAC
 __VERBOSE_PRE_TIME__ = hifir4py.VERBOSE_PRE_TIME
+__VERBOSE_MEM__ = hifir4py.VERBOSE_MEM
 
 # reorderingoptions
 __REORDER_OFF__ = hifir4py.REORDER_OFF
@@ -63,3 +69,13 @@ def _tag2pos_helper():
 
 
 __PARAMS_TAG2POS__ = _tag2pos_helper()
+__PARAMS_POS2TAG__ = [params_pos2tag[i].decode("utf-8") for i in range(hifir4py.NUM_PARAMS)]
+
+
+def set_default_params(double[::1] params):
+    """Set default params
+    """
+    hifir4py.set_default_params(&params[0])
+
+
+__PARAM_DTYPES__ = [option_dtypes[i] for i in range(hifir4py.NUM_PARAMS)]
