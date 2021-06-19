@@ -18,7 +18,16 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.    #
 ###############################################################################
 
-from . import params_helper  # noqa: F401
-from . import di32hif, di64hif, si32hif, si64hif  # noqa: F401
-from . import zi32hif, zi64hif, ci32hif, ci64hif  # noqa: F401
-from .utils import version, warn_flag  # noqa: F401
+# single-precision int32 HIF
+# Author(s):
+#   Qiao Chen
+
+from libcpp.memory cimport unique_ptr as ptr_t
+cimport hifir4py
+
+ctypedef int index_t  # index type
+ctypedef double value_t  # value type, note the interface still uses double
+ctypedef hifir4py.si32PyHIF prec_t  # preconditioner type
+
+
+include "impl_pyhif.pxi"
