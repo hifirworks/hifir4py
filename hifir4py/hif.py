@@ -341,6 +341,7 @@ class HIF:
 
         .. warning:: Access this only if you know what you are doing!
         """
+        return self.__hif
 
     @property
     def A(self):
