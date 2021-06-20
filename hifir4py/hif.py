@@ -17,18 +17,7 @@
 #   You should have received a copy of the GNU Affero General Public License  #
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.    #
 ###############################################################################
-"""Main HIF module for ``hifir4py``
-
-This module contains the core of HIFIR4PY, which includes the following twp
-aspects:
-
-1. control parameters, and
-2. the HIF preconditioner.
-
-.. module:: hifir4py.hif
-    :noindex:
-.. moduleauthor:: Qiao Chen <qiao.chen@stonybrook.edu>
-"""
+"""Main HIF module for ``hifir4py``"""
 
 import enum
 import numpy as np
@@ -110,9 +99,9 @@ class Params:
 
     By default, each control parameter object is initialized with default
     values in the paper. In addition, modifying the parameters can be achieved
-    by using key-value pairs, i.e. `__setitem__`. The keys are the names of
+    by using key-value pairs, i.e. ``__setitem__``. The keys are the names of
     those defined in original C/C++ ``struct``. A complete list of parameters
-    can be retrieved by using :func:`keys`
+    can be retrieved by using :func:`~.Params.keys`.
 
     Examples
     --------
@@ -124,6 +113,18 @@ class Params:
     """
 
     def __init__(self, **kw):
+        """Create a parameter object
+
+        One can potentially pass key-value pairs to initialize a control
+        parameter object.
+
+        Examples
+        --------
+        The following creates a parameter with scalability-oriented dropping
+        thresholds 3.
+
+        >>> params = Params(alpha_L=3, alpha_U=3)
+        """
         self._params = np.zeros(params_helper.__NUM_PARAMS__)
         params_helper.set_default_params(self._params)
         self.__idx = 0  # iterator
@@ -132,6 +133,33 @@ class Params:
                 self[k] = v
             except KeyError:
                 continue
+
+    @property
+    def tau(self):
+        """float: Drop tolerances for both L and U factors"""
+        return self["tau_L"]
+
+    @tau.setter
+    def tau(self, v: float):
+        self["tau_L"] = self["tau_U"] = v
+
+    @property
+    def kappa(self):
+        """float: Conditioning thresholds for L, D, and U factors"""
+        return self["kappa"]
+
+    @kappa.setter
+    def kappa(self, v: float):
+        self["kappa"] = self["kappa_d"] = v
+
+    @property
+    def alpha(self):
+        """float: Scalability-oriented dropping thresholds for both L and U factors"""
+        return self["alpha_L"]
+
+    @alpha.setter
+    def alpha(self, v: float):
+        self["alpha_L"] = self["alpha_U"] = v
 
     def to_dict(self):
         """Convert to dictionary"""
@@ -293,21 +321,6 @@ class HIF:
     Python, with supports of both mixed-precision computation and complex
     arithmetic.
 
-    Attributes
-    ----------
-    M_
-    A
-    S
-    levels
-    nnz
-    nnz_ef
-    nnz_ldu
-    nrows
-    ncols
-    rank
-    schur_rank
-    schur_size
-
     Examples
     --------
     One can simply create an empty preconditioner, and initialize it later.
@@ -317,7 +330,7 @@ class HIF:
 
     Alternatively, one can create an instance and factorize it.
 
-    >>> from scipy.sparse import rank
+    >>> from scipy.sparse import rand
     >>> A = rand(10, 10, 0.5)
     >>> hif = HIF(A)
 
@@ -325,6 +338,15 @@ class HIF:
     """
 
     def __init__(self, A=None, **kw):
+        """Create a HIF preconditioner
+
+        One can construct an empty preconditioner, i.e.,
+
+        >>> M = HIF()
+
+        Alternatively, one can construct and factorize at the same time, and
+        see :func:`factorize` for the interface.
+        """
         self.__hif = None
         self._A = A
         self._S = kw.pop("S", None)
@@ -337,7 +359,7 @@ class HIF:
 
     @property
     def M_(self):
-        """Get the underlying C++ HIF object
+        """Underlying C++ HIF object
 
         .. warning:: Access this only if you know what you are doing!
         """
@@ -345,67 +367,63 @@ class HIF:
 
     @property
     def A(self):
-        """:class:`~scipy.sparse.csr_matrix`: CRS (CSR) matrix"""
+        """:class:`~scipy.sparse.csr_matrix`: User-input CRS (CSR) matrix"""
         return self._A
 
     @property
     def S(self):
-        """:class:`~scipy.sparse.csr_matrix`: CRS (CSR) sparsifier"""
+        """:class:`~scipy.sparse.csr_matrix`: User-input CRS (CSR) sparsifier"""
         return self._S
 
     @property
     def levels(self):
         """int: Number of levels"""
-        self._make_sure_not_null()
-        return self.__hif.levels
+        return 0 if self.empty() else self.__hif.levels
 
     @property
     def nnz(self):
-        """int: Number of nonzeros in the preconditioner"""
-        self._make_sure_not_null()
-        return self.__hif.nnz
+        """int: Total number of nonzeros in the preconditioner"""
+        return 0 if self.empty() else self.__hif.nnz
 
     @property
     def nnz_ef(self):
-        """int: Number of nonzeros in E and F pars"""
-        self._make_sure_not_null()
-        return self.__hif.nnz_ef
+        """int: Total number of nonzeros in the E and F off diagonal blocks"""
+        return 0 if self.empty() else self.__hif.nnz_ef
 
     @property
     def nnz_ldu(self):
-        """int: Number of nonzeros in the L, D, and U factors"""
-        self._make_sure_not_null()
-        return self.__hif.nnz_ldu
+        """int: Total number of nonzeros in the L, D, and U factors"""
+        return 0 if self.empty() else self.__hif.nnz_ldu
 
     @property
     def nrows(self):
         """int: Number of rows"""
-        self._make_sure_not_null()
-        return self.__hif.nrows
+        return 0 if self.empty() else self.__hif.nrows
 
     @property
     def ncols(self):
         """int: Number of columns"""
-        self._make_sure_not_null()
-        return self.__hif.ncols
+        return 0 if self.empty() else self.__hif.ncols
+
+    @property
+    def shape(self):
+        """tuple: 2-tuple of the preconditioner shape, i.e., (:attr:`nrows`, :attr:`ncols`)"""
+        return (self.nrows, self.ncols)
 
     @property
     def rank(self):
-        """int: Numerical rank"""
-        self._make_sure_not_null()
-        return self.__hif.rank
+        """int: Numerical rank of the preconditioner"""
+        return 0 if self.empty() else self.__hif.rank
 
     @property
     def schur_rank(self):
         """int: Numerical rank of the final Schur complement"""
-        self._make_sure_not_null()
-        return self.__hif.schur_rank
+        return 0 if self.empty() else self.__hif.schur_rank
 
     @property
     def schur_size(self):
         """int: Size of the final Schur complement"""
-        self._make_sure_not_null()
-        return self.__hif.schur_size
+        return 0 if self.empty() else self.__hif.schur_size
 
     def is_null(self):
         """Check if the underlying C++ HIF is ``None``"""
@@ -470,7 +488,7 @@ class HIF:
         ----------
         A : :class:`~scipy.sparse.csr_matrix`
             Input CRS matrix
-        S : :class:`~scipy.sparse.csr_matrix` or None, optional
+        S : :class:`~scipy.sparse.csr_matrix` or ``None``, optional
             Optional sparsifier input (on which we will compute HIF)
         is_mixed : bool, optional
             Whether or not using mixed-precision (using single)
