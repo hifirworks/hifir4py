@@ -32,7 +32,6 @@ aspects:
 
 import enum
 import numpy as np
-import scipy.sparse
 from ._hifir import params_helper
 
 __all__ = ["Params", "Verbose", "Reorder", "Pivoting", "HIF"]
@@ -262,6 +261,8 @@ def _create_cpphif(index_t, is_complex: bool, is_mixed: bool):
 
 def _tocsr(A):
     """Helper function to convert to CRS"""
+    import scipy.sparse
+
     if not scipy.sparse.issparse(A):
         raise TypeError("Must be SciPy sparse matrix")
     if not scipy.sparse.isspmatrix_csr(A):
@@ -272,10 +273,11 @@ def _tocsr(A):
 _tocrs = _tocsr
 
 
-def _ensure_same_dtypes(A, S):
-    """Helper to make sure two CRS matrices have same dtypes"""
+def _ensure_similar(A, S):
+    """Helper to make sure two CRS matrices are similar"""
     assert A.indptr.dtype == S.indptr.dtype, "Unmatched index type"
     assert A.data.dtype == S.data.dtype, "Unmatched value type"
+    assert A.shape == S.shape, "Unmatched sizes"
 
 
 def _must_1d(x):
@@ -328,22 +330,10 @@ class HIF:
         self._S = kw.pop("S", None)
         # If both A and S are None, then we skip
         if self._A is None and self._S is None:
-            pass
-        # Prepare for factorization
-        if self._A is not None:
-            self._A = _tocsr(self._A)
-        self._S = _tocsr(self._S if self._S is not None else self._A)
+            return
         if self._A is None:
             self._A = self._S
-        _ensure_same_dtypes(self._A, self._S)
-        is_mixed = kw.pop("is_mixed", False)
-        is_complex = np.iscomplexobj(self._S)
-        params = kw.pop("params", Params(**kw))
-        assert isinstance(params, Params), "Parameters must be Params type"
-        self.__hif = _create_cpphif(self._S.indptr.dtype, is_complex, is_mixed)
-        self.__hif.factorize(
-            self._S.indptr, self._S.indices, self._S.data, params._params
-        )
+        self.factorize(self._A, S=self._S, **kw)
 
     @property
     def M_(self):
@@ -357,20 +347,10 @@ class HIF:
         """:class:`~scipy.sparse.csr_matrix`: CRS (CSR) matrix"""
         return self._A
 
-    @A.setter
-    def A(self, A):
-        self._A = _tocsr(A)
-
     @property
     def S(self):
         """:class:`~scipy.sparse.csr_matrix`: CRS (CSR) sparsifier"""
         return self._S
-
-    @S.setter
-    def S(self, S):
-        self._S = _tocrs(S)
-        if self._A is None:
-            self._A = self._S  # We will set A to be S if A is None
 
     @property
     def levels(self):
@@ -515,8 +495,11 @@ class HIF:
         apply
         """
         self._A = _tocrs(A)
-        self._S = _tocrs(kw.pop("S", self._A))
-        _ensure_same_dtypes(self._A, self._S)
+        self._S = kw.pop("S", self._A)
+        if self._S is None:
+            self._S = self._A
+        self._S = _tocrs(self._S)
+        _ensure_similar(self._A, self._S)
         is_complex = np.iscomplexobj(self._S)
         is_mixed = kw.pop("is_mixed", False)
         params = kw.pop("params", Params(**kw))
