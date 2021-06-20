@@ -18,24 +18,16 @@
 
 # -- Project information -----------------------------------------------------
 
+import hifir4py
+
 project = "hifir4py"
-copyright = "2019, NumGeom Group at Stony Brook University"
+copyright = "2019--2021, NumGeom Group at Stony Brook University"
 author = "Qiao Chen"
 
 # The short X.Y version
-import hifir4py
-
 version = hifir4py.__version__
 # The full version, including alpha/beta/rc tags
-release = "GA"
-
-# copy readme
-from shutil import copyfile
-
-try:
-    copyfile("../README.rst", "./README.rst")
-except:
-    pass
+release = hifir4py.__version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -53,10 +45,15 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.intersphinx",
     # "numpydoc",
-    "IPython.sphinxext.ipython_console_highlighting",
-    "IPython.sphinxext.ipython_directive",
 ]
+
+intersphinx_mapping = {
+    "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -113,6 +110,7 @@ html_static_path = ["_static"]
 # 'searchbox.html']``.
 #
 # html_sidebars = {}
+html_domain_indices = True
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
@@ -177,3 +175,4 @@ todo_include_todos = True
 add_module_names = False  # remove module names. i.e. module.foobar
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
+autosummary_generate = True
