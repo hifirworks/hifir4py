@@ -21,4 +21,4 @@
 from . import params_helper  # noqa: F401
 from . import di32hif, di64hif, si32hif, si64hif  # noqa: F401
 from . import zi32hif, zi64hif, ci32hif, ci64hif  # noqa: F401
-from .utils import version, warn_flag  # noqa: F401
+from .utils import version  # noqa: F401

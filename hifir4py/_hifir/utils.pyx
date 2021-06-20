@@ -28,7 +28,3 @@ cimport hifir4py
 def version():
     """Get version x.x.x"""
     return hifir4py.version().decode("utf-8")
-
-
-def warn_flag(int flag):
-    return hifir4py.warn_flag(flag)
