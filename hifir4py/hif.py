@@ -602,3 +602,20 @@ class HIF:
                     rank,
                 )
         return x
+
+    def to_scipy(self):
+        """Compute a SciPy LinearOperator based on HIF
+
+        Returns
+        -------
+        :class:`~scipy.sparse.linalg.LinearOperator`
+            Return a linear operator in SciPy so that HIF can be used in its
+            built-in KSP solvers.
+        """
+        self._make_sure_not_null()
+        if self.empty():
+            raise ValueError("Preconditioner is still empty")
+
+        import scipy.sparse.linalg as spla
+
+        return spla.LinearOperator((self.nrows, self.ncols), lambda b: self.apply(b))
