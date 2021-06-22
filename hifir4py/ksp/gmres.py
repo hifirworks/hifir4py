@@ -70,13 +70,13 @@ class GMRES_WorkSpace:
         """
         assert n > 0, "Invalid size {}".format(n)
         assert restart > 0, "Invalid restart {}".format(restart)
-        self.y = np.empty(restart + 1, dtype=dtype)
-        self.R = np.empty((restart, restart), dtype=dtype)
-        self.Q = np.empty((restart, n), dtype=dtype)
-        self.J = np.empty((2, restart), dtype=dtype)
-        self.v = np.empty(n, dtype=dtype)
+        self.y = np.zeros(restart + 1, dtype=dtype)
+        self.R = np.zeros((restart, restart), dtype=dtype)
+        self.Q = np.zeros((restart, n), dtype=dtype)
+        self.J = np.zeros((2, restart), dtype=dtype)
+        self.v = np.zeros(n, dtype=dtype)
         self.w = self.v.copy()
-        self.w2 = np.empty(restart, dtype=dtype)
+        self.w2 = np.zeros(restart, dtype=dtype)
 
     @property
     def dtype(self):
