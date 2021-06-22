@@ -32,3 +32,9 @@ def to_crs(A):
 
 
 to_csr = to_crs
+
+
+def must_1d(x):
+    """Helper function to ensure array must be 1D"""
+    if (len(x.shape) > 1 and x.shape[1] != 1) or len(x.shape) > 2:
+        raise ValueError("Must be 1D array")

@@ -22,7 +22,7 @@
 import enum
 import numpy as np
 from ._hifir import params_helper
-from .utils import to_crs, to_csr
+from .utils import to_crs, must_1d
 
 __all__ = ["Params", "Verbose", "Reorder", "Pivoting", "HIF"]
 
@@ -293,12 +293,6 @@ def _ensure_similar(A, S):
     assert A.indptr.dtype == S.indptr.dtype, "Unmatched index type"
     assert A.data.dtype == S.data.dtype, "Unmatched value type"
     assert A.shape == S.shape, "Unmatched sizes"
-
-
-def _must_1d(x):
-    """Helper function to ensure array must be 1D"""
-    if (len(x.shape) > 1 and x.shape[1] != 1) or len(x.shape) > 2:
-        raise ValueError("Must be 1D array")
 
 
 class HIF:
@@ -581,7 +575,7 @@ class HIF:
         assert op in ("s", "sh", "st", "m", "mh", "mt"), "Unknown operation {}".format(
             op
         )
-        _must_1d(b)
+        must_1d(b)
         if self._S.shape[0] != b.shape[0]:
             raise ValueError("Unmatched sizes of input vector and preconditioner")
         nirs = kw.pop("nirs", 1)
@@ -589,7 +583,7 @@ class HIF:
         trans = len(op) > 1
         # buffer
         x = kw.pop("x", np.empty(b.shape[0], dtype=b.dtype))
-        _must_1d(x)
+        must_1d(x)
         assert x.shape[0] == b.shape[0], "Unmatched sizes for input buffer x"
         if op[0] == "m":
             self.__hif.mmultiply(b.reshape(-1), x.reshape(-1), trans, rank)
