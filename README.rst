@@ -95,5 +95,5 @@ recommend you to cite the following papers.
 Contacts
 --------
 
-Qiao (Chiao) Chen, <qiao.chen@stonybrook.edu>, <benechiao@gmail.com>
-Xiangmin Jiao, <xiangmin.jiao@stonybrook.edu>
+1. Qiao (Chiao) Chen, <qiao.chen@stonybrook.edu>, <benechiao@gmail.com>
+2. Xiangmin Jiao, <xiangmin.jiao@stonybrook.edu>
