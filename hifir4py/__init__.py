@@ -168,5 +168,6 @@ Using in KSP
 """
 from ._hifir import version
 from .hif import *  # noqa: F401, F403
+from . import ksp  # noqa: F401
 
 __version__ = version()

@@ -22,7 +22,7 @@
 import time
 import numpy as np
 
-__all__ = ["GMRES_WorkSpace", "gmres_hif"]
+__all__ = ["GMRES_WorkSpace", "gmres_hif", "gmres"]
 
 
 class GMRES_WorkSpace:
@@ -92,31 +92,6 @@ class GMRES_WorkSpace:
     def restart(self):
         """int: Restart dimension"""
         return self.R.shape[0]
-
-
-def _select_mul_ax_kernel(is_complex: bool, index_size: int):
-    """Helper function to select matrix-vector kernel"""
-    from . import mul_crs_ax
-
-    assert index_size in (32, 64), "Must be either int32 or int64"
-    v = "d" if not is_complex else "z"
-    return getattr(mul_crs_ax, "{}i{}_multiply".format(v, index_size))
-
-
-def _get_M(A, M, verbose, **kw):
-    """Helper function to get M"""
-    from ..hif import HIF
-
-    if M is None:
-        start = time.time()
-        M = HIF(A, verbose=verbose > 1, **kw)
-        t_fac = time.time() - start
-        print("HIF factorization finished in {:.4g}s.".format(t_fac))
-    else:
-        assert issubclass(M.__class__, HIF), "Must be (child of) HIF"
-        print("Preconditioned provided as input.")
-        t_fac = 0.0
-    return M, t_fac
 
 
 def gmres_hif(A, b, M=None, **kw):  # noqa: C901
@@ -370,3 +345,33 @@ def gmres_hif(A, b, M=None, **kw):  # noqa: C901
             "times": [t_fac, t_solve],
         },
     )
+
+
+def gmres(*args, **kw):
+    """An alias of :func:`.gmres_hif`"""
+    return gmres_hif(*args, **kw)
+
+
+def _select_mul_ax_kernel(is_complex: bool, index_size: int):
+    """Helper function to select matrix-vector kernel"""
+    from . import mul_crs_ax
+
+    assert index_size in (32, 64), "Must be either int32 or int64"
+    v = "d" if not is_complex else "z"
+    return getattr(mul_crs_ax, "{}i{}_multiply".format(v, index_size))
+
+
+def _get_M(A, M, verbose, **kw):
+    """Helper function to get M"""
+    from ..hif import HIF
+
+    if M is None:
+        start = time.time()
+        M = HIF(A, verbose=verbose > 1, **kw)
+        t_fac = time.time() - start
+        print("HIF factorization finished in {:.4g}s.".format(t_fac))
+    else:
+        assert issubclass(M.__class__, HIF), "Must be (child of) HIF"
+        print("Preconditioned provided as input.")
+        t_fac = 0.0
+    return M, t_fac

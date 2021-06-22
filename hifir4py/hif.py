@@ -271,30 +271,6 @@ class Params:
         self["verbose"] = Verbose.NONE
 
 
-def _create_cpphif(index_t, is_complex: bool, is_mixed: bool):
-    """Select proper C++ preconditioner"""
-    from . import _hifir
-
-    assert index_t in (np.int32, np.int64), "Must be int32 or int64"
-    cpphif = "{}i{}hif"
-    if index_t == np.int32:
-        index_size = 32
-    else:
-        index_size = 64
-    if not is_mixed:
-        vd = "d" if not is_complex else "z"
-    else:
-        vd = "s" if not is_complex else "c"
-    return getattr(_hifir, cpphif.format(vd, index_size)).HIF()
-
-
-def _ensure_similar(A, S):
-    """Helper to make sure two CRS matrices are similar"""
-    assert A.indptr.dtype == S.indptr.dtype, "Unmatched index type"
-    assert A.data.dtype == S.data.dtype, "Unmatched value type"
-    assert A.shape == S.shape, "Unmatched sizes"
-
-
 class HIF:
     """The HIF preconditioner object
 
@@ -619,3 +595,27 @@ class HIF:
         import scipy.sparse.linalg as spla
 
         return spla.LinearOperator((self.nrows, self.ncols), lambda b: self.apply(b))
+
+
+def _create_cpphif(index_t, is_complex: bool, is_mixed: bool):
+    """Select proper C++ preconditioner"""
+    from . import _hifir
+
+    assert index_t in (np.int32, np.int64), "Must be int32 or int64"
+    cpphif = "{}i{}hif"
+    if index_t == np.int32:
+        index_size = 32
+    else:
+        index_size = 64
+    if not is_mixed:
+        vd = "d" if not is_complex else "z"
+    else:
+        vd = "s" if not is_complex else "c"
+    return getattr(_hifir, cpphif.format(vd, index_size)).HIF()
+
+
+def _ensure_similar(A, S):
+    """Helper to make sure two CRS matrices are similar"""
+    assert A.indptr.dtype == S.indptr.dtype, "Unmatched index type"
+    assert A.data.dtype == S.data.dtype, "Unmatched value type"
+    assert A.shape == S.shape, "Unmatched sizes"
