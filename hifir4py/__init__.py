@@ -2,282 +2,171 @@
 ###############################################################################
 #                 This file is part of HIFIR4PY project                       #
 #                                                                             #
-#    Copyright (C) 2019--2021 NumGeom Group at Stony Brook University         #
+#   Copyright (C) 2019--2021 NumGeom Group at Stony Brook University          #
 #                                                                             #
-#    This program is free software: you can redistribute it and/or modify     #
-#    it under the terms of the GNU Affero General Public License as published #
-#    by the Free Software Foundation, either version 3 of the License, or     #
-#    (at your option) any later version.                                      #
+#   This program is free software: you can redistribute it and/or modify      #
+#   it under the terms of the GNU Affero General Public License as published  #
+#   by the Free Software Foundation, either version 3 of the License, or      #
+#   (at your option) any later version.                                       #
 #                                                                             #
-#    This program is distributed in the hope that it will be useful,          #
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of           #
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            #
-#    GNU Affero General Public License for more details.                      #
+#   This program is distributed in the hope that it will be useful,           #
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of            #
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             #
+#   GNU Affero General Public License for more details.                       #
 #                                                                             #
-#    You should have received a copy of the GNU Affero General Public License #
-#    along with this program.  If not, see <https://www.gnu.org/licenses/>.   #
+#   You should have received a copy of the GNU Affero General Public License  #
+#   along with this program.  If not, see <https://www.gnu.org/licenses/>.    #
 ###############################################################################
-from enum import IntEnum
+r"""
+=================================================
+HIFIR Preconditioner for Python (:mod:`hifir4py`)
+=================================================
 
-from ._hifir4py import *
+.. currentmodule:: hifir4py
 
+Contents
+========
 
-class Configuration:
-    """HIFIR4PY configuration interface
-    """
+The HIF preconditioner
+----------------------
 
-    @staticmethod
-    def version():
-        """Check the backend HIFIR version
+.. autosummary::
+    :template: hifir4py_autosummary.rst
+    :toctree: generated/
 
-        The version number is also adapted to be the `hifir4py` version; the
-        convension is ``global.major.minor``.
+    HIF - Main object for HIF preconditioner
 
-        Returns
-        -------
-        str
-            Version number
-        """
-        from ._hifir4py import _version
 
-        return _version()
+Control Parameters
+------------------
 
-    @staticmethod
-    def is_warning():
-        """Check if the internal warning logging is on
+.. autosummary::
+    :template: hifir4py_autosummary.rst
+    :toctree: generated/
 
-        Returns
-        -------
-        bool
-            True if the waring log is on
-        """
-        from ._hifir4py import _is_warning
+    Params - Dictionary-like object for control parameters
+    Verbose - Verbose levels
+    Reorder - Reordering strategies
+    Pivoting - Pivoting options
 
-        return _is_warning()
+Example Usage
+=============
 
-    @staticmethod
-    def enable_warning():
-        """Enable warning for underlying HIFIR routines
+There are two aspects in using this software package:
 
-        See Also
-        --------
-        is_warning
-        disable_warning
-        """
-        from ._hifir4py import _enable_warning
+1. Compute a HIF preconditioner, and
+2. apply a HIF preconditioner (with iterative refinements).
 
-        _enable_warning()
+In addition, we demonstrate how to use HIF directly through KSP solvers.
 
-    @staticmethod
-    def disable_warning():
-        """Disable warning messages from HIFIR
+Factorization
+-------------
 
-        See Also
-        --------
-        enable_warning
-        is_warning
-        """
-        from ._hifir4py import _disable_warning
+>>> from hifir4py import *
+>>> from scipy.sparse import rand
+>>> import numpy as np
 
-        _disable_warning()
+Now, to factorize a matrix, one can simply do
 
+>>> A = rand(10, 10, 0.5)
+>>> M = HIF(A)
 
-__version__ = Configuration.version()
-"""str: version number"""
+or, alternatively, perform
 
+>>> M = HIF()
+>>> M.factorize(A)
 
-class Verbose(IntEnum):
-    """Verbose level
+In many applications, the preconditioner may be built based on a "sparser"
+system (sparsifier), such as p-multigrid. One can provide such sparsifier
+in factorization step.
 
-    .. note:: All attributes are bit masks that support bit-wise ``or``
-    """
+>>> S = rand(10, 10, 0.3)
+>>> M = HIF(A, S=S)
 
-    NONE = VERBOSE_NONE
-    """NONE mask, use to disable verbose
-    """
+or, alternatively, perform
 
-    INFO = VERBOSE_INFO
-    """General info mask (set by default)
-    """
+>>> M = HIF()
+>>> M.factorize(A, S=S)
 
-    PRE = VERBOSE_PRE
-    """Enable verbose information with regards to preprocessing
-    """
+The default parameters may be too conservative, and one may want to optimize
+parameters for his/her applications.
 
-    FAC = VERBOSE_FAC
-    """Enable verbose for factorization
+>>> params = Params()
+>>> params
+{'tau_L': 0.0001, 'tau_U': 0.0001, 'kappa_d': 3.0, 'kappa': 3.0,
+'alpha_L': 10.0, 'alpha_U': 10.0, 'rho': 0.5, 'c_d': 10.0, 'c_h': 2.0, 'N': -1,
+'verbose': 1, 'rf_par': 1, 'reorder': 0, 'spd': 0, 'check': 1, 'pre_scale': 0,
+'symm_pre_lvls': 1, 'threads': 0, 'mumps_blr': 1, 'fat_schur_1st': 0,
+'rrqr_cond': 0.0, 'pivot': 2, 'gamma': 1.0, 'beta': 1000.0, 'is_symm': 0,
+'no_pre': 0}
+>>> M = HIF(A, params=params)
 
-    .. warning:: This will slow down the factorization significantly!
-    """
+To disable verbose, one can do
 
-    PRE_TIME = VERBOSE_PRE_TIME
-    """Enable timing on preprocessing
-    """
+>>> params["verbose"] = Verbose.NONE
+>>> params.disable_verbose()  # equivalent to above
 
+To set larger drop tolerances (:math:`\tau`) and conditioning thresholds
+(:math:`\kappa`) and smaller scalability-oriented dropping factors
+(:math:`\alpha`), one can set the ``"tau_L"`` and ``"tau_U"`` entries,
+``"kappa_d"`` and ``"kappa"`` entries, and ``"alpha_L"`` and ``"alpha_U"``
+entries.
 
-class Reorder(IntEnum):
-    """Reorder options
-    """
+>>> params["tau_L"] = params["tau_L"] = 1e-2
+>>> params["kappa_d"] = params["kappa"] = 5
+>>> params["alpha_L"] = params["alpha_U"] = 3
 
-    OFF = REORDER_OFF
-    """Disable reorder
+or, equivalently, using the following methods to set uniform values.
 
-    .. warning:: Not recommended!
-    """
+>>> params.tau = 1e-2
+>>> params.kappa = 5
+>>> params.alpha = 3
 
-    AUTO = REORDER_AUTO
-    """Automatically determined reordering scheme (default)
-    """
+Applying HIF
+------------
 
-    AMD = REORDER_AMD
-    """Using approximate minimal degree (AMD) for all levels
-    """
-
-    RCM = REORDER_RCM
-    """Using reverse Cuthill-Mckee (RCM) for all levels
-    """
-
-
-class Pivoting(IntEnum):
-    """Pivoting options
-    """
-
-    OFF = PIVOTING_OFF
-    """Disable reorder
-    """
-
-    ON = PIVOTING_ON
-    """Enable pivoting"""
-
-    AUTO = REORDER_AUTO
-    """Automatically determined reordering scheme (default)
-    """
-
-
-def get_include():
-    """Get the include path
-
-    Returns
-    -------
-    str
-        Absolute path to this module
-    """
-    import os
-
-    return os.path.dirname(os.path.abspath(__file__))
-
-
-def create_ksp(ksp, *args, **kw):
-    """Create and initialize a KSP solver with HIFIR embedded in
-
-    Parameters
-    ----------
-    ksp : str
-        Solver name
-    mixed : bool, optional
-        Using mixed solver, default is False
-    args, kw
-        Positional and keyword arguments migrated to KSP constructor
-
-    Returns
-    -------
-    KspSolver
-        A KSP instance
-
-    Raises
-    ------
-    ValueError
-        Unknown KSP solver `ksp`
-
-    Examples
-    --------
-
-    >>> from hifir4py import *
-    >>> solver = create_ksp("gmres")  # GMRES
-    >>> from scipy.sparse import random
-    >>> A = random(10, 10, 0.5)
-    >>> solver.M.factorize(A)
-    >>> import numpy as np
-    >>> b = np.random.rand(10)
-    >>> x = solver.solve(A, b)
-
-    Notes
-    -----
-
-    As to `ksp`, available options are
-
-    #. ``gmres`` ([1]_, [2]_)
-    #. ``qmrcgstab`` ([3]_)
-    #. ``gmresr`` ([4]_)
-    #. ``bicgstab`` ([5]_)
-
-    special symbols ``show`` or ``query`` can be passed to get available KSP
-    solver names, i.e.,
-
-        >>> create_ksp("show")
-        ["gmres", "qmrcgstab", "bicgstab", "gmresr", "fgmres"]
-
-    References
-    ----------
-
-    .. [1]
-        Saad, Y., & Schultz, M. H. (1986). GMRES: A generalized minimal
-        residual algorithm for solving nonsymmetric linear systems. SIAM Journal
-        on Scientific and Statistical Computing, 7(3), 856-869.
-    .. [2]
-        Saad, Y. (1993). A flexible inner-outer preconditioned GMRES
-        algorithm. SIAM Journal on Scientific Computing, 14(2), 461-469.
-    .. [3]
-        Chan, T. F., Gallopoulos, E., Simoncini, V., Szeto, T., & Tong, C. H.
-        (1994). A quasi-minimal residual variant of the Bi-CGSTAB algorithm for
-        nonsymmetric systems. SIAM Journal on Scientific Computing, 15(2),
-        338-347.
-    .. [4]
-        Van der Vorst, H. A., & Vuik, C. (1994). GMRESR: a family of nested
-        GMRES methods. Numerical linear algebra with applications, 1(4), 369-386.
-    .. [5]
-        G. L. G. Sleijpen, D. R. Fokkema, and H. A van der Vorst. BiCGSTAB(J)
-        and other hybrid Bi-CG methods. Numer. Algorithms, 7:75--109, 1994.
-    """
-    ksp = ksp.lower()
-    if ksp in ("show", "query"):
-        return ["gmres", "qmrcgstab", "bicgstab", "gmresr", "fgmres"]
-    mixed = kw.pop("mixed", False)
-    if ksp.find("gmresr") > -1:
-        return TGMRESR(*args, **kw) if not mixed else TGMRESR_Mixed(*args, **kw)
-    if ksp.find("fgmres") > -1:
-        return FGMRES(*args, **kw) if not mixed else FGMRES_Mixed(*args, *kw)
-    if ksp.find("gmres") > -1:
-        return GMRES(*args, **kw) if not mixed else GMRES_Mixed(*args, *kw)
-    if ksp.find("qmrcgstab") > -1:
-        return FQMRCGSTAB(*args, **kw) if not mixed else FQMRCGSTAB_Mixed(*args, **kw)
-    if ksp.find("bicgstab"):
-        return FBICGSTAB(*args, **kw) if not mixed else FBICGSTAB_Mixed(*args, **kw)
-    raise ValueError("Unknown KSP solver {}".format(ksp))
-
-
-def create_M(mixed=False):
-    """Create HIF preconditioner
-
-    Parameters
-    ----------
-    mixed : bool, optional
-        If False (default), the do not enable mixed precision
-
-    Returns
-    -------
-    HIF or HIF_Mixed
-        If `mixed` is False, return the former.
-
-    See Also
-    --------
-    create_ksp
-
-    Notes
-    -----
-
-    This is designed for users who just need preconditioner. Otherwise, please
-    directly use :func:`create_ksp` as each KSP solver has a preconditioner
-    embedded in.
-    """
-    return HIF() if not mixed else HIF_Mixed()
+There are four modes for applying HIF preconditioners:
+
+1. multilevel triangular solve (most commonly used),
+2. transpose/Hermitian multilevel triangular solve,
+3. multilevel matrix-vector multiplication, and
+4. transpose/Hermitian multilevel matrix-vector multiplication.
+
+Iterative refinements can be enabled in triangular solve modes (modes 1 and 2),
+and all four operations can be used in a unified function :meth:`~.HIF.apply`.
+
+>>> b = np.random.rand(10)
+
+The following code illustrates how to perform the standard triangular solve,
+i.e., :math:`\boldsymbol{x}=\boldsymbol{M}^g\boldsymbol{b}`.
+
+>>> x = M.apply(b)
+>>> x = M.apply(b, op="S")  # equivalent to above
+
+Iterative refinements can be enabled through
+
+>>> x = M.apply(b, nirs=2)  # two-step IR
+
+Similarly, matrix-vector multiplication, i.e.,
+:math:`\boldsymbol{x}=\boldsymbol{M}\boldsymbol{b}`, can be done through the
+following code.
+
+>>> x = M.apply(b, op="M")
+
+Finally, ``op="SH"`` and ``op="MH"`` enable the tranpose/Hermitian option for
+multilevel triangular solve and matrix-vector multiplication, respectively.
+
+Using in KSP
+------------
+
+``hifir4py`` has built-in support for using in SciPy's KSP solvers.
+
+>>> from scipy.sparse.linalg import gmres
+>>> x, flag = gmres(A, b, M=M.to_scipy())
+
+.. note:: SciPy uses left-preconditioned GMRES, which is not recommended.
+"""
+from ._hifir import version
+from .hif import *  # noqa: F401, F403
+
+__version__ = version()

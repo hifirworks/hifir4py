@@ -2,20 +2,20 @@
 ###############################################################################
 #                 This file is part of HIFIR4PY project                       #
 #                                                                             #
-#    Copyright (C) 2019--2021 NumGeom Group at Stony Brook University         #
+#   Copyright (C) 2019--2021 NumGeom Group at Stony Brook University          #
 #                                                                             #
-#    This program is free software: you can redistribute it and/or modify     #
-#    it under the terms of the GNU Affero General Public License as published #
-#    by the Free Software Foundation, either version 3 of the License, or     #
-#    (at your option) any later version.                                      #
+#   This program is free software: you can redistribute it and/or modify      #
+#   it under the terms of the GNU Affero General Public License as published  #
+#   by the Free Software Foundation, either version 3 of the License, or      #
+#   (at your option) any later version.                                       #
 #                                                                             #
-#    This program is distributed in the hope that it will be useful,          #
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of           #
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            #
-#    GNU Affero General Public License for more details.                      #
+#   This program is distributed in the hope that it will be useful,           #
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of            #
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             #
+#   GNU Affero General Public License for more details.                       #
 #                                                                             #
-#    You should have received a copy of the GNU Affero General Public License #
-#    along with this program.  If not, see <https://www.gnu.org/licenses/>.   #
+#   You should have received a copy of the GNU Affero General Public License  #
+#   along with this program.  If not, see <https://www.gnu.org/licenses/>.    #
 ###############################################################################
 
 # Authors:
@@ -23,33 +23,16 @@
 
 # This is the core interface for hifir4py
 
-from libcpp cimport bool
 from libcpp.string cimport string as std_string
+from libcpp cimport bool
 from libc.stddef cimport size_t
-from libc.stdint cimport uint64_t
-from libcpp.vector cimport vector
-from libcpp.memory cimport shared_ptr
-from libcpp.utility cimport pair
-from cpython.ref cimport PyObject
-
-
-cdef extern from "hifir4py.hpp" namespace "hif":
-    # nullspace eliminator with gil
-    cdef cppclass PyNspFilter:
-        PyNspFilter()
-        PyNspFilter(const size_t start)
-        PyNspFilter(const size_t start, const size_t end)
-        object (*array_encoder)(void *, size_t)
-        void (*nsp_invoker)(void *, object)
-        PyObject *user_call
-        void enable_or()
+from libc.stdint cimport int64_t
 
 
 cdef extern from "hifir4py.hpp" namespace "hif" nogil:
-    # two necessary utilities
+    # Two utilities
     std_string version()
     bool warn_flag(const int)
-
     # wrap options, we don't care about the attributes
     cdef enum:
         VERBOSE_NONE
@@ -68,34 +51,25 @@ cdef extern from "hifir4py.hpp" namespace "hif" nogil:
         PIVOTING_ON
         PIVOTING_AUTO
 
-    ctypedef struct Options:
-        pass
-    Options get_default_options()
-    std_string opt_repr(const Options &opts) except +
-    # also, manipulation method
-    bool set_option_attr[T](const std_string &attr, const T v, Options &opts)
-    # enable verbose flags
-    void enable_verbose(const int flag, Options &opts)
-    # get verbose
-    std_string get_verbose(const Options &opts);
 
-    # io
-    void read_hifir(const std_string &fn, size_t &nrows, size_t &ncols,
-                    size_t &m, vector[int] &indptr,
-                    vector[int] &indices, vector[double] &vals,
-                    const bool is_bin) except +
-    void write_hifir(const std_string &fn, const size_t nrows,
-                     const size_t ncols, const int *indptr,
-                     const int *indices, const double *vals,
-                     const size_t m0, const bool is_bin) except +
-    void query_hifir_info(const std_string &fn, bool &is_row, bool &is_c,
-                          bool &is_double, bool &is_real,
-                          uint64_t &nrows, uint64_t &ncols,
-                          uint64_t &nnz, uint64_t &m,
-                          const bool is_bin) except +
+cdef extern from "hifir4py.hpp" namespace "hifir4py" nogil:
+    cdef enum:
+        NUM_PARAMS
 
-    cdef cppclass PyHIF:
-        PyHIF()
+    void set_default_params(double *params)
+
+    cdef cppclass di32PyHIF:
+        ctypedef int index_type
+        ctypedef double interface_type
+
+        @staticmethod
+        bool is_mixed()
+        @staticmethod
+        bool is_complex()
+        @staticmethod
+        size_t index_size()
+
+        di32PyHIF()
         bool empty()
         size_t levels()
         size_t nnz()
@@ -110,27 +84,36 @@ cdef extern from "hifir4py.hpp" namespace "hif" nogil:
         void clear() except +
 
         # computing routine
-        void factorize_raw(const size_t n, const int *indptr, const int *indices,
-                           const double *vals, const size_t m0,
-                           const Options &opts) except +
+        void factorize(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const double *params) except +
 
         # solving routine
-        void solve_raw(const size_t n, const double *b, double *x,
-                       const bool trans, const size_t r) except +
-
-        # solving with iterative refinement
-        void hifir_raw(const size_t n, const int *rowptr, const int *colind,
-                       const double *vals, const double *b, const size_t N,
-                       double *x, const bool trans, const size_t r) except +
+        void solve(const size_t n, const interface_type *b, interface_type *x,
+            const bool trans, const size_t r) except +
 
         # multilevel matrix-vector
-        void mmultiply_raw(const size_t n, const double *b, double *x,
-                           const bool trans, const size_t r) except +
+        void mmultiply(const size_t n, const interface_type *b,
+            interface_type *x, const bool trans, const size_t r) except +
 
-        shared_ptr[PyNspFilter] nsp
+        # solving with iterative refinement
+        void hifir(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const interface_type *b, const size_t nirs, interface_type *x,
+            const bool trans, const size_t r) except +
 
-    cdef cppclass PyHIF_Mixed:
-        PyHIF_Mixed()
+    cdef cppclass di64PyHIF:
+        ctypedef int64_t index_type
+        ctypedef double interface_type
+
+        @staticmethod
+        bool is_mixed()
+        @staticmethod
+        bool is_complex()
+        @staticmethod
+        size_t index_size()
+
+        di64PyHIF()
         bool empty()
         size_t levels()
         size_t nnz()
@@ -145,133 +128,286 @@ cdef extern from "hifir4py.hpp" namespace "hif" nogil:
         void clear() except +
 
         # computing routine
-        void factorize_raw(const size_t n, const int *indptr, const int *indices,
-                           const double *vals, const size_t m0,
-                           const Options &opts) except +
+        void factorize(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const double *params) except +
 
         # solving routine
-        void solve_raw(const size_t n, const double *b, double *x,
-                       const bool trans, const size_t r) except +
-
-        # solving with iterative refinement
-        void hifir_raw(const size_t n, const int *rowptr, const int *colind,
-                       const double *vals, const double *b, const size_t N,
-                       double *x, const bool trans, const size_t r) except +
+        void solve(const size_t n, const interface_type *b, interface_type *x,
+            const bool trans, const size_t r) except +
 
         # multilevel matrix-vector
-        void mmultiply_raw(const size_t n, const double *b, double *x,
-                           const bool trans, const size_t r) except +
+        void mmultiply(const size_t n, const interface_type *b,
+            interface_type *x, const bool trans, const size_t r) except +
 
-        shared_ptr[PyNspFilter] nsp
+        # solving with iterative refinement
+        void hifir(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const interface_type *b, const size_t nirs, interface_type *x,
+            const bool trans, const size_t r) except +
 
-    cdef cppclass KspSolver:
-        void set_rtol(const double v)
-        double get_rtol()
-        void set_restart(const int v)
-        int get_restart()
-        void set_maxit(const size_t v)
-        size_t get_maxit()
-        void set_inner_steps(const size_t v)
-        size_t get_inner_steps()
-        void set_lamb1(const double v)
-        double get_lamb1()
-        void set_lamb2(const double v)
-        double get_lamb2()
-        void check_pars()
-        int get_resids_length()
-        void get_resids(double *r)
-        pair[int, size_t] solve_raw(const size_t n, const int *rowptr,
-                                    const int *colind, const double *vals,
-                                    const double *b, double *x, const int kernel,
-                                    const bool with_init_guess,
-                                    const bool verbose) except +
+    cdef cppclass si32PyHIF:
+        ctypedef int index_type
+        # input is always double precision
+        ctypedef double interface_type
 
-    cdef cppclass PyGMRES(KspSolver):
-        PyGMRES()
-        PyGMRES(shared_ptr[PyHIF] M, const double rel_tol, const int rs,
-                const size_t max_iters, const size_t max_inner_steps) except +
-        void set_M(shared_ptr[PyHIF] M) except +
-        shared_ptr[PyHIF] get_M()
+        @staticmethod
+        bool is_mixed()
+        @staticmethod
+        bool is_complex()
+        @staticmethod
+        size_t index_size()
 
-    cdef cppclass PyGMRES_Mixed(KspSolver):
-        PyGMRES_Mixed()
-        PyGMRES_Mixed(shared_ptr[PyHIF_Mixed] M, const double rel_tol,
-                      const int rs, const size_t max_iters,
-                      const size_t max_inner_steps) except +
-        void set_M(shared_ptr[PyHIF_Mixed] M) except +
-        shared_ptr[PyHIF_Mixed] get_M()
+        si32PyHIF()
+        bool empty()
+        size_t levels()
+        size_t nnz()
+        size_t nnz_ef()
+        size_t nnz_ldu()
+        size_t nrows()
+        size_t ncols()
+        size_t rank()
+        size_t schur_rank()
+        size_t schur_size()
+        size_t stats(const size_t entry) except +
+        void clear() except +
 
-    cdef cppclass PyFGMRES(KspSolver):
-        PyFGMRES()
-        PyFGMRES(shared_ptr[PyHIF] M, const double rel_tol, const int rs,
-                 const size_t max_iters, const size_t max_inner_steps) except +
-        void set_M(shared_ptr[PyHIF] M) except +
-        shared_ptr[PyHIF] get_M()
+        # computing routine
+        void factorize(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const double *params) except +
 
-    cdef cppclass PyFGMRES_Mixed(KspSolver):
-        PyFGMRES_Mixed()
-        PyFGMRES_Mixed(shared_ptr[PyHIF_Mixed] M, const double rel_tol,
-                       const int rs, const size_t max_iters,
-                       const size_t max_inner_steps) except +
-        void set_M(shared_ptr[PyHIF_Mixed] M) except +
-        shared_ptr[PyHIF_Mixed] get_M()
+        # solving routine
+        void solve(const size_t n, const interface_type *b, interface_type *x,
+            const bool trans, const size_t r) except +
 
-    cdef cppclass PyFQMRCGSTAB(KspSolver):
-        PyFQMRCGSTAB()
-        PyFQMRCGSTAB(shared_ptr[PyHIF] M, const double rel_tol,
-                 const size_t max_iters, const size_t innersteps) except +
-        void set_M(shared_ptr[PyHIF] M) except +
-        shared_ptr[PyHIF] get_M()
+        # multilevel matrix-vector
+        void mmultiply(const size_t n, const interface_type *b,
+            interface_type *x, const bool trans, const size_t r) except +
 
-    cdef cppclass PyFQMRCGSTAB_Mixed(KspSolver):
-        PyFQMRCGSTAB_Mixed()
-        PyFQMRCGSTAB_Mixed(shared_ptr[PyHIF_Mixed] M, const double rel_tol,
-                           const size_t max_iters,
-                           const size_t innersteps) except +
-        void set_M(shared_ptr[PyHIF_Mixed] M) except +
-        shared_ptr[PyHIF_Mixed] get_M()
+        # solving with iterative refinement
+        void hifir(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const interface_type *b, const size_t nirs, interface_type *x,
+            const bool trans, const size_t r) except +
 
-    cdef cppclass PyFBICGSTAB(KspSolver):
-        PyFBICGSTAB()
-        PyFBICGSTAB(shared_ptr[PyHIF] M, const double rel_tol,
-                 const size_t max_iters, const size_t innersteps) except +
-        void set_M(shared_ptr[PyHIF] M) except +
-        shared_ptr[PyHIF] get_M()
+    cdef cppclass si64PyHIF:
+        ctypedef int64_t index_type
+        # input is always double precision
+        ctypedef double interface_type
 
-    cdef cppclass PyFBICGSTAB_Mixed(KspSolver):
-        PyFBICGSTAB_Mixed()
-        PyFBICGSTAB_Mixed(shared_ptr[PyHIF_Mixed] M, const double rel_tol,
-                           const size_t max_iters,
-                           const size_t innersteps) except +
-        void set_M(shared_ptr[PyHIF_Mixed] M) except +
-        shared_ptr[PyHIF_Mixed] get_M()
+        @staticmethod
+        bool is_mixed()
+        @staticmethod
+        bool is_complex()
+        @staticmethod
+        size_t index_size()
 
-    cdef cppclass PyTGMRESR(KspSolver):
-        PyTGMRESR()
-        PyTGMRESR(shared_ptr[PyHIF] M, const double rel_tol,
-                 const size_t max_iters, const size_t innersteps) except +
-        void set_M(shared_ptr[PyHIF] M) except +
-        shared_ptr[PyHIF] get_M()
+        si64PyHIF()
+        bool empty()
+        size_t levels()
+        size_t nnz()
+        size_t nnz_ef()
+        size_t nnz_ldu()
+        size_t nrows()
+        size_t ncols()
+        size_t rank()
+        size_t schur_rank()
+        size_t schur_size()
+        size_t stats(const size_t entry) except +
+        void clear() except +
 
-    cdef cppclass PyTGMRESR_Mixed(KspSolver):
-        PyTGMRESR_Mixed()
-        PyTGMRESR_Mixed(shared_ptr[PyHIF_Mixed] M, const double rel_tol,
-                           const size_t max_iters,
-                           const size_t innersteps) except +
-        void set_M(shared_ptr[PyHIF_Mixed] M) except +
-        shared_ptr[PyHIF_Mixed] get_M()
+        # computing routine
+        void factorize(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const double *params) except +
 
+        # solving routine
+        void solve(const size_t n, const interface_type *b, interface_type *x,
+            const bool trans, const size_t r) except +
 
-cdef extern from "hifir4py.hpp" namespace "hif::ksp" nogil:
-    cdef enum:
-        INVALID_ARGS
-        M_SOLVE_ERROR
-        SUCCESS
-        DIVERGED
-        STAGNATED
-        BREAK_DOWN
+        # multilevel matrix-vector
+        void mmultiply(const size_t n, const interface_type *b,
+            interface_type *x, const bool trans, const size_t r) except +
 
-    cdef enum:
-        TRADITION
-        ITERATIVE_REFINE
-        CHEBYSHEV_ITERATIVE_REFINE
+        # solving with iterative refinement
+        void hifir(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const interface_type *b, const size_t nirs, interface_type *x,
+            const bool trans, const size_t r) except +
+
+    cdef cppclass zi32PyHIF:
+        ctypedef int index_type
+        ctypedef void interface_type
+
+        @staticmethod
+        bool is_mixed()
+        @staticmethod
+        bool is_complex()
+        @staticmethod
+        size_t index_size()
+
+        zi32PyHIF()
+        bool empty()
+        size_t levels()
+        size_t nnz()
+        size_t nnz_ef()
+        size_t nnz_ldu()
+        size_t nrows()
+        size_t ncols()
+        size_t rank()
+        size_t schur_rank()
+        size_t schur_size()
+        size_t stats(const size_t entry) except +
+        void clear() except +
+
+        # computing routine
+        void factorize(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const double *params) except +
+
+        # solving routine
+        void solve(const size_t n, const interface_type *b, interface_type *x,
+            const bool trans, const size_t r) except +
+
+        # multilevel matrix-vector
+        void mmultiply(const size_t n, const interface_type *b,
+            interface_type *x, const bool trans, const size_t r) except +
+
+        # solving with iterative refinement
+        void hifir(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const interface_type *b, const size_t nirs, interface_type *x,
+            const bool trans, const size_t r) except +
+
+    cdef cppclass zi64PyHIF:
+        ctypedef int64_t index_type
+        ctypedef void interface_type
+
+        @staticmethod
+        bool is_mixed()
+        @staticmethod
+        bool is_complex()
+        @staticmethod
+        size_t index_size()
+
+        zi64PyHIF()
+        bool empty()
+        size_t levels()
+        size_t nnz()
+        size_t nnz_ef()
+        size_t nnz_ldu()
+        size_t nrows()
+        size_t ncols()
+        size_t rank()
+        size_t schur_rank()
+        size_t schur_size()
+        size_t stats(const size_t entry) except +
+        void clear() except +
+
+        # computing routine
+        void factorize(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const double *params) except +
+
+        # solving routine
+        void solve(const size_t n, const interface_type *b, interface_type *x,
+            const bool trans, const size_t r) except +
+
+        # multilevel matrix-vector
+        void mmultiply(const size_t n, const interface_type *b,
+            interface_type *x, const bool trans, const size_t r) except +
+
+        # solving with iterative refinement
+        void hifir(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const interface_type *b, const size_t nirs, interface_type *x,
+            const bool trans, const size_t r) except +
+
+    cdef cppclass ci32PyHIF:
+        ctypedef int index_type
+        ctypedef void interface_type
+
+        @staticmethod
+        bool is_mixed()
+        @staticmethod
+        bool is_complex()
+        @staticmethod
+        size_t index_size()
+
+        ci32PyHIF()
+        bool empty()
+        size_t levels()
+        size_t nnz()
+        size_t nnz_ef()
+        size_t nnz_ldu()
+        size_t nrows()
+        size_t ncols()
+        size_t rank()
+        size_t schur_rank()
+        size_t schur_size()
+        size_t stats(const size_t entry) except +
+        void clear() except +
+
+        # computing routine
+        void factorize(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const double *params) except +
+
+        # solving routine
+        void solve(const size_t n, const interface_type *b, interface_type *x,
+            const bool trans, const size_t r) except +
+
+        # multilevel matrix-vector
+        void mmultiply(const size_t n, const interface_type *b,
+            interface_type *x, const bool trans, const size_t r) except +
+
+        # solving with iterative refinement
+        void hifir(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const interface_type *b, const size_t nirs, interface_type *x,
+            const bool trans, const size_t r) except +
+
+    cdef cppclass ci64PyHIF:
+        ctypedef int64_t index_type
+        ctypedef void interface_type
+
+        @staticmethod
+        bool is_mixed()
+        @staticmethod
+        bool is_complex()
+        @staticmethod
+        size_t index_size()
+
+        ci64PyHIF()
+        bool empty()
+        size_t levels()
+        size_t nnz()
+        size_t nnz_ef()
+        size_t nnz_ldu()
+        size_t nrows()
+        size_t ncols()
+        size_t rank()
+        size_t schur_rank()
+        size_t schur_size()
+        size_t stats(const size_t entry) except +
+        void clear() except +
+
+        # computing routine
+        void factorize(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const double *params) except +
+
+        # solving routine
+        void solve(const size_t n, const interface_type *b, interface_type *x,
+            const bool trans, const size_t r) except +
+
+        # multilevel matrix-vector
+        void mmultiply(const size_t n, const interface_type *b,
+            interface_type *x, const bool trans, const size_t r) except +
+
+        # solving with iterative refinement
+        void hifir(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const interface_type *b, const size_t nirs, interface_type *x,
+            const bool trans, const size_t r) except +

@@ -1,12 +1,5 @@
-.. _api:
-
-*hilucsi4py* API References
-===========================
-
-.. toctree::
-    :maxdepth: 2
-    :caption: Contents:
-
-    apis/user
-    apis/core
-    apis/utils
+.. automodule:: hifir4py
+    :no-members:
+    :no-inherited-members:
+    :no-special-members:
+ 

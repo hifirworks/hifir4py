@@ -18,19 +18,7 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.    #
 ###############################################################################
 
-# This file is to utilize Cython API feature to generate Python3 print
-# wrappers for stdout (1) and stderr (2), which will be wrapped as
-# HIF_{STDOUT,STDERR}, resp.
-
-# Authors:
-#   Qiao,
-
-import sys
-
-
-cdef api void hifir4py_stdout(const char *msg):
-    print(msg.decode("utf-8"), file=sys.stdout)
-
-
-cdef api void hifir4py_stderr(const char *msg):
-    print(msg.decode("utf-8"), file=sys.stderr)
+from . import params_helper  # noqa: F401
+from . import di32hif, di64hif, si32hif, si64hif  # noqa: F401
+from . import zi32hif, zi64hif, ci32hif, ci64hif  # noqa: F401
+from .utils import version  # noqa: F401

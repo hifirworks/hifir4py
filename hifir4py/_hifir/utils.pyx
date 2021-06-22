@@ -18,19 +18,13 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.    #
 ###############################################################################
 
-# This file is to utilize Cython API feature to generate Python3 print
-# wrappers for stdout (1) and stderr (2), which will be wrapped as
-# HIF_{STDOUT,STDERR}, resp.
+# Utilities, such as version and global warnings
+# Author(s):
+#   Qiao Chen
 
-# Authors:
-#   Qiao,
-
-import sys
+cimport hifir4py
 
 
-cdef api void hifir4py_stdout(const char *msg):
-    print(msg.decode("utf-8"), file=sys.stdout)
-
-
-cdef api void hifir4py_stderr(const char *msg):
-    print(msg.decode("utf-8"), file=sys.stderr)
+def version():
+    """Get version x.x.x"""
+    return hifir4py.version().decode("utf-8")

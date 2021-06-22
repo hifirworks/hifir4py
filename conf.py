@@ -24,9 +24,20 @@ incs = [".", os.path.join("hifir", "src")]
 # configure libraries
 _lapack_lib = os.environ.get("HIFIR_LAPACK_LIB", "-llapack")
 _lapack_libs = _lapack_lib.split(" ")
+_lapack_a = os.environ.get("HIFIR_LAPACK_STATIC_LIB", None)
+extra_objs = []
+libs = []
+if _lapack_a is not None and _lapack_a:
+    _lapack_lib = []
+    extra_objs = _lapack_a.split(" ")
+    # For static linking we need to link to fortran runtime
+    # TODO: make this portable
+    libs = ["gfortran"]
+# NOTE: Assume -lxxx
+# TODO: make this portable
 for i, _l in enumerate(_lapack_libs):
     _lapack_libs[i] = _l[2:]
-libs = _lapack_libs
+libs += _lapack_libs
 
 # configure library paths
 lib_dirs = None
@@ -45,8 +56,10 @@ class BuildExt(build_ext):
 
     def build_extensions(self):
         self._remove_flag("-Wstrict-prototypes")
+        opts = []
         if _hifir4py_debug:
             self._remove_flag("-DNDEBUG")
+            opts.append("-DHIF_DEBUG")
 
         cpl_type = self.compiler.compiler_type
 
@@ -61,7 +74,6 @@ class BuildExt(build_ext):
                     return False
             return True
 
-        opts = []
         has_omp = False
         if cpl_type == "unix":
             assert test_switch("-std=c++11"), "must have C++11 support"
@@ -86,6 +98,7 @@ class BuildExt(build_ext):
 
 
 _pyx = glob.glob(os.path.join("hifir4py", "*.pyx"))
+_pyx += glob.glob(os.path.join("hifir4py", "_hifir", "*.pyx"))
 exts = []
 
 for f in _pyx:
@@ -100,6 +113,7 @@ for f in _pyx:
             libraries=libs,
             library_dirs=lib_dirs,
             runtime_library_dirs=rpath,
+            extra_objects=extra_objs,
         )
     )
 

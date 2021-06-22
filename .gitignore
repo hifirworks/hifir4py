@@ -31,5 +31,8 @@ bar*
 spam*
 hifir4py/*.cpp
 hifir4py/*.h
+hifir4py/*/*.cpp
+hifir4py/*/*.h
 docs/README.rst
+docs/generated
 .MATLABDriveTag

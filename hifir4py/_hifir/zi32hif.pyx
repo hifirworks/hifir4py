@@ -18,19 +18,16 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.    #
 ###############################################################################
 
-# This file is to utilize Cython API feature to generate Python3 print
-# wrappers for stdout (1) and stderr (2), which will be wrapped as
-# HIF_{STDOUT,STDERR}, resp.
+# double-precision int32 complex HIF
+# Author(s):
+#   Qiao Chen
 
-# Authors:
-#   Qiao,
+from libcpp.memory cimport unique_ptr as ptr_t
+cimport hifir4py
 
-import sys
-
-
-cdef api void hifir4py_stdout(const char *msg):
-    print(msg.decode("utf-8"), file=sys.stdout)
+ctypedef int index_t  # index type
+ctypedef double complex value_t  # value type
+ctypedef hifir4py.zi32PyHIF prec_t  # preconditioner type
 
 
-cdef api void hifir4py_stderr(const char *msg):
-    print(msg.decode("utf-8"), file=sys.stderr)
+include "impl_pyhif.pxi"
