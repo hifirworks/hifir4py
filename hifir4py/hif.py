@@ -22,6 +22,7 @@
 import enum
 import numpy as np
 from ._hifir import params_helper
+from .utils import to_crs, to_csr
 
 __all__ = ["Params", "Verbose", "Reorder", "Pivoting", "HIF"]
 
@@ -287,20 +288,6 @@ def _create_cpphif(index_t, is_complex: bool, is_mixed: bool):
     return getattr(_hifir, cpphif.format(vd, index_size)).HIF()
 
 
-def _tocsr(A):
-    """Helper function to convert to CRS"""
-    import scipy.sparse
-
-    if not scipy.sparse.issparse(A):
-        raise TypeError("Must be SciPy sparse matrix")
-    if not scipy.sparse.isspmatrix_csr(A):
-        return A.tocsr()
-    return A
-
-
-_tocrs = _tocsr
-
-
 def _ensure_similar(A, S):
     """Helper to make sure two CRS matrices are similar"""
     assert A.indptr.dtype == S.indptr.dtype, "Unmatched index type"
@@ -513,11 +500,11 @@ class HIF:
         --------
         apply
         """
-        self._A = _tocrs(A)
+        self._A = to_crs(A)
         self._S = kw.pop("S", self._A)
         if self._S is None:
             self._S = self._A
-        self._S = _tocrs(self._S)
+        self._S = to_crs(self._S)
         _ensure_similar(self._A, self._S)
         is_complex = np.iscomplexobj(self._S)
         is_mixed = kw.pop("is_mixed", False)
