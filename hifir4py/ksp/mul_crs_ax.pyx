@@ -19,7 +19,6 @@
 ###############################################################################
 
 # Matrix-vector multiplication for CRS
-# NOTE: This can also be used in CCS transpose
 
 from libcpp cimport bool
 from libc.stddef cimport size_t
@@ -31,22 +30,17 @@ ctypedef hifir4py.int64_t int64_t
 cdef extern from "hifir4py.hpp" namespace "hif" nogil:
     cdef cppclass CRS[V, I]:
         CRS()
-    cdef cppclass Array[V]:
-        Array()
+        void multiply_t_low(const V *x, V *y)
 
     CRS[V, I] wrap_const_crs[V, I](const size_t nrows, const size_t ncols,
         const I *row_start, const I *col_ind, const V *vals, bool check)
-    Array[V] wrap_const_array[V](const size_t n, const V *data)
-    Array[V] wrap_array[V](const size_t, V *data)
 
 
 cdef extern from "hifir4py.hpp" namespace "hif::mt" nogil:
     # Multi-threaded CRS matrix-vector
-    void multiply_nt[Mat, Vin, Vout](const Mat &A, const Vin &x, Vout &y)
+    void multiply_nt_low[Mat, V](const Mat &A, const V *x, V *y)
 
 
-ctypedef Array[double] arrayd_t
-ctypedef Array[double complex] arrayz_t
 ctypedef CRS[double, int] matdi32_t
 ctypedef CRS[double, int64_t] matdi64_t
 ctypedef CRS[double complex, int] matzi32_t
@@ -59,12 +53,16 @@ ctypedef CRS[double complex, int64_t] matzi64_t
 
 cdef inline void _di32_multiply(size_t n, int[::1] indptr, int[::1] indices,
     double[::1] vals, double[::1] x, double[::1] y) nogil:
-    cdef:
-        matdi32_t A = wrap_const_crs[double, int](n, n, &indptr[0],
-            &indices[0], &vals[0])
-        arrayd_t xx = wrap_const_array[double](n, &x[0])
-        arrayd_t yy = wrap_array[double](n, &y[0])
-    multiply_nt[matdi32_t, arrayd_t, arrayd_t](A, xx, yy)
+    cdef matdi32_t A = wrap_const_crs[double, int](n, n, &indptr[0],
+        &indices[0], &vals[0])
+    multiply_nt_low[matdi32_t, double](A, &x[0], &y[0])
+
+
+cdef inline void _di32_multiply_trans(size_t n, int[::1] indptr, int[::1] indices,
+    double[::1] vals, double[::1] x, double[::1] y) nogil:
+    cdef matdi32_t A = wrap_const_crs[double, int](n, n, &indptr[0],
+        &indices[0], &vals[0])
+    A.multiply_t_low(&x[0], &y[0])
 
 
 def di32_multiply(
@@ -73,9 +71,13 @@ def di32_multiply(
     double[::1] vals,
     double[::1] x,
     double[::1] y,
+    bool trans=False,
 ):
     """Matrix-vector of y=A*x for double and int32"""
-    _di32_multiply(indptr.size - 1, indptr, indices, vals, x, y)
+    if not trans:
+        _di32_multiply(indptr.size - 1, indptr, indices, vals, x, y)
+    else:
+        _di32_multiply_trans(indptr.size - 1, indptr, indices, vals, x, y)
 
 
 ##################
@@ -84,12 +86,16 @@ def di32_multiply(
 
 cdef inline void _di64_multiply(size_t n, int64_t[::1] indptr, int64_t[::1] indices,
     double[::1] vals, double[::1] x, double[::1] y) nogil:
-    cdef:
-        matdi64_t A = wrap_const_crs[double, int64_t](n, n, &indptr[0],
-            &indices[0], &vals[0])
-        arrayd_t xx = wrap_const_array[double](n, &x[0])
-        arrayd_t yy = wrap_array[double](n, &y[0])
-    multiply_nt[matdi64_t, arrayd_t, arrayd_t](A, xx, yy)
+    cdef matdi64_t A = wrap_const_crs[double, int64_t](n, n, &indptr[0],
+        &indices[0], &vals[0])
+    multiply_nt_low[matdi64_t, double](A, &x[0], &y[0])
+
+
+cdef inline void _di64_multiply_trans(size_t n, int64_t[::1] indptr,
+    int64_t[::1] indices, double[::1] vals, double[::1] x, double[::1] y) nogil:
+    cdef matdi64_t A = wrap_const_crs[double, int64_t](n, n, &indptr[0],
+        &indices[0], &vals[0])
+    A.multiply_t_low(&x[0], &y[0])
 
 
 def di64_multiply(
@@ -98,9 +104,13 @@ def di64_multiply(
     double[::1] vals,
     double[::1] x,
     double[::1] y,
+    bool trans=False,
 ):
     """Matrix-vector of y=A*x for double and int64"""
-    _di64_multiply(indptr.size - 1, indptr, indices, vals, x, y)
+    if not trans:
+        _di64_multiply(indptr.size - 1, indptr, indices, vals, x, y)
+    else:
+        _di64_multiply_trans(indptr.size - 1, indptr, indices, vals, x, y)
 
 
 #######################
@@ -112,12 +122,16 @@ ctypedef double complex z_t
 
 cdef inline void _zi32_multiply(size_t n, int[::1] indptr, int[::1] indices,
     z_t[::1] vals, z_t[::1] x, z_t[::1] y) nogil:
-    cdef:
-        matzi32_t A = wrap_const_crs[z_t, int](n, n, &indptr[0],
-            &indices[0], &vals[0])
-        arrayz_t xx = wrap_const_array[z_t](n, &x[0])
-        arrayz_t yy = wrap_array[z_t](n, &y[0])
-    multiply_nt[matzi32_t, arrayz_t, arrayz_t](A, xx, yy)
+    cdef matzi32_t A = wrap_const_crs[z_t, int](n, n, &indptr[0],
+        &indices[0], &vals[0])
+    multiply_nt_low[matzi32_t, z_t](A, &x[0], &y[0])
+
+
+cdef inline void _zi32_multiply_trans(size_t n, int[::1] indptr, int[::1] indices,
+    z_t[::1] vals, z_t[::1] x, z_t[::1] y) nogil:
+    cdef matzi32_t A = wrap_const_crs[z_t, int](n, n, &indptr[0],
+        &indices[0], &vals[0])
+    A.multiply_t_low(&x[0], &y[0])
 
 
 def zi32_multiply(
@@ -126,9 +140,13 @@ def zi32_multiply(
     z_t[::1] vals,
     z_t[::1] x,
     z_t[::1] y,
+    bool trans=False,
 ):
     """Matrix-vector of y=A*x for double complex and int32"""
-    _zi32_multiply(indptr.size - 1, indptr, indices, vals, x, y)
+    if not trans:
+        _zi32_multiply(indptr.size - 1, indptr, indices, vals, x, y)
+    else:
+        _zi32_multiply_trans(indptr.size - 1, indptr, indices, vals, x, y)
 
 
 #######################
@@ -137,12 +155,16 @@ def zi32_multiply(
 
 cdef inline void _zi64_multiply(size_t n, int64_t[::1] indptr, int64_t[::1] indices,
     z_t[::1] vals, z_t[::1] x, z_t[::1] y) nogil:
-    cdef:
-        matzi64_t A = wrap_const_crs[z_t, int64_t](n, n, &indptr[0],
-            &indices[0], &vals[0])
-        arrayz_t xx = wrap_const_array[z_t](n, &x[0])
-        arrayz_t yy = wrap_array[z_t](n, &y[0])
-    multiply_nt[matzi64_t, arrayz_t, arrayz_t](A, xx, yy)
+    cdef matzi64_t A = wrap_const_crs[z_t, int64_t](n, n, &indptr[0],
+        &indices[0], &vals[0])
+    multiply_nt_low[matzi64_t, z_t](A, &x[0], &y[0])
+
+
+cdef inline void _zi64_multiply_trans(size_t n, int64_t[::1] indptr,
+    int64_t[::1] indices, z_t[::1] vals, z_t[::1] x, z_t[::1] y) nogil:
+    cdef matzi64_t A = wrap_const_crs[z_t, int64_t](n, n, &indptr[0],
+        &indices[0], &vals[0])
+    A.multiply_t_low(&x[0], &y[0])
 
 
 def zi64_multiply(
@@ -151,6 +173,10 @@ def zi64_multiply(
     z_t[::1] vals,
     z_t[::1] x,
     z_t[::1] y,
+    bool trans=False,
 ):
     """Matrix-vector of y=A*x for double complex and int64"""
-    _zi64_multiply(indptr.size - 1, indptr, indices, vals, x, y)
+    if not trans:
+        _zi64_multiply(indptr.size - 1, indptr, indices, vals, x, y)
+    else:
+        _zi64_multiply_trans(indptr.size - 1, indptr, indices, vals, x, y)
