@@ -555,7 +555,13 @@ class HIF:
         if self._S.shape[0] != b.shape[0]:
             raise ValueError("Unmatched sizes of input vector and preconditioner")
         nirs = kw.pop("nirs", 1)
-        rank = kw.pop("rank", -1) if op[0] == "s" and nirs > 1 else kw.pop("rank", 0)
+        rank = (
+            kw.pop("rank", np.iinfo("uint64").max)
+            if op[0] == "s" and nirs > 1
+            else kw.pop("rank", 0)
+        )
+        if rank < 0:
+            rank = np.iinfo("uint64").max
         trans = len(op) > 1
         # buffer
         x = kw.pop("x", np.empty(b.shape[0], dtype=b.dtype))
