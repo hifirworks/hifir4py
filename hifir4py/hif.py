@@ -18,10 +18,11 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.    #
 ###############################################################################
 """Main HIF module for ``hifir4py``"""
-
 import enum
+import typing
 import numpy as np
-from ._hifir import params_helper
+import scipy.sparse.linalg as spla
+from . import _hifir
 from .utils import to_crs, must_1d, ensure_same
 
 __all__ = ["Params", "Verbose", "Reorder", "Pivoting", "HIF"]
@@ -33,64 +34,62 @@ class Verbose(enum.IntEnum):
     .. note:: All attributes are bit masks that support bit-wise ``or``
     """
 
-    NONE = params_helper.__VERBOSE_NONE__
+    NONE = _hifir.params_helper.__VERBOSE_NONE__
     """NONE mask, use to disable verbose
     """
 
-    INFO = params_helper.__VERBOSE_INFO__
+    INFO = _hifir.params_helper.__VERBOSE_INFO__
     """General info mask (set by default)
     """
 
-    PRE = params_helper.__VERBOSE_PRE__
+    PRE = _hifir.params_helper.__VERBOSE_PRE__
     """Enable verbose information with regards to preprocessing
     """
 
-    FAC = params_helper.__VERBOSE_FAC__
+    FAC = _hifir.params_helper.__VERBOSE_FAC__
     """Enable verbose for factorization
 
     .. warning:: This will slow down the factorization significantly!
     """
 
-    PRE_TIME = params_helper.__VERBOSE_PRE_TIME__
+    PRE_TIME = _hifir.params_helper.__VERBOSE_PRE_TIME__
     """Enable timing on preprocessing
     """
 
 
 class Reorder(enum.IntEnum):
-    """Reorder options
-    """
+    """Reorder options"""
 
-    OFF = params_helper.__REORDER_OFF__
+    OFF = _hifir.params_helper.__REORDER_OFF__
     """Disable reorder
 
     .. warning:: Not recommended!
     """
 
-    AUTO = params_helper.__REORDER_AUTO__
+    AUTO = _hifir.params_helper.__REORDER_AUTO__
     """Automatically determined reordering scheme (default)
     """
 
-    AMD = params_helper.__REORDER_AMD__
+    AMD = _hifir.params_helper.__REORDER_AMD__
     """Using approximate minimal degree (AMD) for all levels
     """
 
-    RCM = params_helper.__REORDER_RCM__
+    RCM = _hifir.params_helper.__REORDER_RCM__
     """Using reverse Cuthill-Mckee (RCM) for all levels
     """
 
 
 class Pivoting(enum.IntEnum):
-    """Pivoting options
-    """
+    """Pivoting options"""
 
-    OFF = params_helper.__PIVOTING_OFF__
+    OFF = _hifir.params_helper.__PIVOTING_OFF__
     """Disable reorder
     """
 
-    ON = params_helper.__PIVOTING_ON__
+    ON = _hifir.params_helper.__PIVOTING_ON__
     """Enable pivoting"""
 
-    AUTO = params_helper.__PIVOTING_AUTO__
+    AUTO = _hifir.params_helper.__PIVOTING_AUTO__
     """Automatically determined reordering scheme (default)
     """
 
@@ -126,8 +125,8 @@ class Params:
 
         >>> params = Params(alpha_L=3, alpha_U=3)
         """
-        self._params = np.zeros(params_helper.__NUM_PARAMS__)
-        params_helper.set_default_params(self._params)
+        self._params = np.zeros(_hifir.params_helper.__NUM_PARAMS__)
+        _hifir.params_helper.set_default_params(self._params)
         self.__idx = 0  # iterator
         for k, v in kw.items():
             try:
@@ -136,7 +135,7 @@ class Params:
                 continue
 
     @property
-    def tau(self):
+    def tau(self) -> float:
         """float: Drop tolerances for both L and U factors"""
         return self["tau_L"]
 
@@ -145,7 +144,7 @@ class Params:
         self["tau_L"] = self["tau_U"] = v
 
     @property
-    def kappa(self):
+    def kappa(self) -> float:
         """float: Conditioning thresholds for L, D, and U factors"""
         return self["kappa"]
 
@@ -154,7 +153,7 @@ class Params:
         self["kappa"] = self["kappa_d"] = v
 
     @property
-    def alpha(self):
+    def alpha(self) -> float:
         """float: Scalability-oriented dropping thresholds for both L and U factors"""
         return self["alpha_L"]
 
@@ -162,23 +161,23 @@ class Params:
     def alpha(self, v: float):
         self["alpha_L"] = self["alpha_U"] = v
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         """Convert to dictionary"""
         _par = {}
-        for k, i in params_helper.__PARAMS_TAG2POS__.items():
-            if params_helper.__PARAM_DTYPES__[i]:
+        for k, i in _hifir.params_helper.__PARAMS_TAG2POS__.items():
+            if _hifir.params_helper.__PARAM_DTYPES__[i]:
                 _par[k] = self._params[i]  # float
             else:
                 _par[k] = int(self._params[i])  # int
         return _par
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return repr(self.to_dict())
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__repr__()
 
-    def __getitem__(self, param_name: str):
+    def __getitem__(self, param_name: str) -> typing.Union[float, int]:
         """Retrieve the parameter value given by its name
 
         Parameters
@@ -192,11 +191,11 @@ class Params:
             Parameter value
         """
         try:
-            pos = params_helper.__PARAMS_TAG2POS__[param_name]
-        except KeyError:
-            raise KeyError("Unknown parameter name {}".format(param_name))
+            pos = _hifir.params_helper.__PARAMS_TAG2POS__[param_name]
+        except KeyError as e:
+            raise KeyError("Unknown parameter name {}".format(param_name)) from e
         # Determine data type
-        if params_helper.__PARAM_DTYPES__[pos]:
+        if _hifir.params_helper.__PARAM_DTYPES__[pos]:
             return self._params[pos]
         return int(self._params[pos])
 
@@ -216,20 +215,20 @@ class Params:
             Raised as per unsupported options
         """
         try:
-            pos = params_helper.__PARAMS_TAG2POS__[param_name]
-        except KeyError:
-            raise KeyError("Unknown parameter name {}".format(param_name))
+            pos = _hifir.params_helper.__PARAMS_TAG2POS__[param_name]
+        except KeyError as e:
+            raise KeyError("Unknown parameter name {}".format(param_name)) from e
         self._params[pos] = v
 
-    def __iter__(self):
+    def __iter__(self) -> str:
         self.__idx = 0
         return self
 
     def __next__(self):
-        if self.__idx >= params_helper.__NUM_PARAMS__:
+        if self.__idx >= _hifir.params_helper.__NUM_PARAMS__:
             raise StopIteration
         try:
-            return self.__getitem__(params_helper.__PARAMS_POS2TAG__[self.__idx])
+            return self.__getitem__(_hifir.params_helper.__PARAMS_POS2TAG__[self.__idx])
         finally:
             self.__idx += 1
 
@@ -242,11 +241,11 @@ class Params:
     def items(self):
         return self.to_dict().items()
 
-    def reset(self):
+    def reset(self) -> None:
         """This function will reset all parameters to their default values"""
-        params_helper.set_default_params(self._params)
+        _hifir.params_helper.set_default_params(self._params)
 
-    def enable_verbose(self, flag: int):
+    def enable_verbose(self, flag: int) -> None:
         """Enable verbose level
 
         Parameters
@@ -266,7 +265,7 @@ class Params:
         else:
             self["verbose"] = flag
 
-    def disable_verbose(self):
+    def disable_verbose(self) -> None:
         """Disable verbose"""
         self["verbose"] = Verbose.NONE
 
@@ -333,68 +332,77 @@ class HIF:
         return self._S
 
     @property
-    def levels(self):
+    def levels(self) -> int:
         """int: Number of levels"""
         return 0 if self.empty() else self.__hif.levels
 
     @property
-    def nnz(self):
+    def nnz(self) -> int:
         """int: Total number of nonzeros in the preconditioner"""
         return 0 if self.empty() else self.__hif.nnz
 
     @property
-    def nnz_ef(self):
+    def nnz_ef(self) -> int:
         """int: Total number of nonzeros in the E and F off diagonal blocks"""
         return 0 if self.empty() else self.__hif.nnz_ef
 
     @property
-    def nnz_ldu(self):
+    def nnz_ldu(self) -> int:
         """int: Total number of nonzeros in the L, D, and U factors"""
         return 0 if self.empty() else self.__hif.nnz_ldu
 
     @property
-    def nrows(self):
+    def nrows(self) -> int:
         """int: Number of rows"""
         return 0 if self.empty() else self.__hif.nrows
 
     @property
-    def ncols(self):
+    def ncols(self) -> int:
         """int: Number of columns"""
         return 0 if self.empty() else self.__hif.ncols
 
     @property
-    def shape(self):
+    def shape(self) -> typing.Tuple[int, int]:
         """tuple: 2-tuple of the preconditioner shape, i.e., (:attr:`nrows`, :attr:`ncols`)"""
         return (self.nrows, self.ncols)
 
     @property
-    def rank(self):
+    def rank(self) -> int:
         """int: Numerical rank of the preconditioner"""
         return 0 if self.empty() else self.__hif.rank
 
     @property
-    def schur_rank(self):
+    def schur_rank(self) -> int:
         """int: Numerical rank of the final Schur complement"""
         return 0 if self.empty() else self.__hif.schur_rank
 
     @property
-    def schur_size(self):
+    def schur_size(self) -> int:
         """int: Size of the final Schur complement"""
         return 0 if self.empty() else self.__hif.schur_size
 
-    def is_null(self):
-        """Check if the underlying C++ HIF is ``None``"""
-        return self.__hif is None
-
-    def empty(self):
+    def empty(self) -> bool:
         """Check emptyness"""
-        return self.is_null() or self.__hif.empty()
+        return self.__hif is None or self.__hif.empty()
 
-    def _make_sure_not_null(self):
-        if self.is_null():
-            raise AttributeError("The underlying C++ HIF attribute is missing")
+    def __repr__(self) -> str:
+        """Representation of a HIF instance"""
+        if self.empty():
+            return "Empty HIF preconditioner"
+        rp = """HIF preconditioner
+        shape: {}
+        nnz: {}
+        levels: {}
+        nnz-ratio: {:.2f}%
+        """.format(
+            self.shape, self.nnz, self.levels, 100.0 * self.nnz / self._S.nnz
+        )
+        return rp
 
-    def is_mixed(self):
+    def __str__(self) -> str:
+        return repr(self)
+
+    def is_mixed(self) -> bool:
         """Check if the underlying HIF is mixed-precision
 
         Raises
@@ -409,7 +417,7 @@ class HIF:
         self._make_sure_not_null()
         return self.__hif.is_mixed()
 
-    def is_complex(self):
+    def is_complex(self) -> bool:
         """Check if the underlying C++ HIF is complex
 
         Raises
@@ -424,7 +432,7 @@ class HIF:
         self._make_sure_not_null()
         return self.__hif.is_complex()
 
-    def index_size(self):
+    def index_size(self) -> int:
         """Check the integer byte size used in underlying C++ HIF
 
         Raises
@@ -435,7 +443,11 @@ class HIF:
         self._make_sure_not_null()
         return self.__hif.index_size()
 
-    def factorize(self, A, **kw):
+    def clear(self) -> None:
+        """Clear the internal memory for the preconditioner"""
+        self.__hif = None
+
+    def factorize(self, A, **kw) -> None:
         """Factorize a HIF preconditioner
 
         This function is the core in HIF to (re)factorize a HIF preconditioner
@@ -482,7 +494,7 @@ class HIF:
         if not issubclass(params.__class__, Params):
             raise TypeError("Parameters must be Params type")
         if (
-            self.is_null()
+            self.__hif is None
             or self.index_size() != self._S.indptr.dtype.itemsize
             or self.is_mixed() != is_mixed
             or self.is_complex() != is_complex
@@ -492,7 +504,7 @@ class HIF:
             self._S.indptr, self._S.indices, self._S.data, params._params
         )
 
-    def apply(self, b, **kw):
+    def apply(self, b: np.ndarray, **kw) -> np.ndarray:
         """Apply the preconditioner with a given operation (op)
 
         This function is to apply the preconditioner in the following four
@@ -597,22 +609,19 @@ class HIF:
         if self.empty():
             raise ValueError("Preconditioner is still empty")
 
-        import scipy.sparse.linalg as spla
+        return spla.LinearOperator((self.nrows, self.ncols), self.apply)
 
-        return spla.LinearOperator((self.nrows, self.ncols), lambda b: self.apply(b))
+    def _make_sure_not_null(self) -> None:
+        if self.__hif is None:
+            raise AttributeError("The underlying C++ HIF attribute is missing")
 
 
-def _create_cpphif(index_t, is_complex: bool, is_mixed: bool):
+def _create_cpphif(index_t: np.dtype, is_complex: bool, is_mixed: bool):
     """Select proper C++ preconditioner"""
-    from . import _hifir
-
     if index_t not in (np.int32, np.int64):
         raise ValueError("Must be int32 or int64")
     cpphif = "{}i{}hif"
-    if index_t == np.int32:
-        index_size = 32
-    else:
-        index_size = 64
+    index_size = 32 if index_t == np.int32 else 64
     if not is_mixed:
         vd = "d" if not is_complex else "z"
     else:
@@ -620,7 +629,7 @@ def _create_cpphif(index_t, is_complex: bool, is_mixed: bool):
     return getattr(_hifir, cpphif.format(vd, index_size)).HIF()
 
 
-def _ensure_similar(A, S):
+def _ensure_similar(A, S) -> None:
     """Helper to make sure two CRS matrices are similar"""
     ensure_same(A.indptr.dtype, S.indptr.dtype, "Unmatched index type")
     ensure_same(A.data.dtype, S.data.dtype, "Unmatched value type")
