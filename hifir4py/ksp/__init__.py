@@ -18,4 +18,6 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.    #
 ###############################################################################
 
-from .gmres import GMRES_WorkSpace, gmres_hif  # noqa: F401
+from .gmres import GMRES_WorkSpace, gmres_hif, gmres  # noqa: F401
+from .orth_null import FGMRES_WorkSpace, orth_null  # noqa: F401
+from .pipit import pipit_hifir, pipit  # noqa: F401
