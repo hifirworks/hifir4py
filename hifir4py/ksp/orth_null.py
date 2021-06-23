@@ -20,7 +20,8 @@
 """Right-preconditioned FGMRES with HIFIR for solving nullspace"""
 
 import numpy as np
-from .gmres import GMRES_WorkSpace
+from .gmres import GMRES_WorkSpace, _select_mul_ax_kernel
+from ..utils import to_crs
 
 __all__ = ["FGMRES_WorkSpace", "orth_null"]
 
@@ -43,8 +44,138 @@ class FGMRES_WorkSpace(GMRES_WorkSpace):
         self.u2 = self.v.copy()
 
 
-def orth_null():
-    pass
+def orth_null(
+    A,
+    n_null: int,
+    M,
+    leftnull: bool,
+    restart: int,
+    rtol: float,
+    maxit: int,
+    work=None,
+    verbose=1,
+):
+    """Compute multiple (small dimension) null-space components
+
+    Parameters
+    ----------
+    A : :class:`~scipy.sparse.csr_matrix`
+        Input coefficient matrix
+    n_null : int
+        Dimension of nullspace
+    M : :class:`~hifir4py.HIF`
+        HIF preconditioner (pre-factorized)
+    leftnull : bool
+        Whether or not computing for left nullspace
+    restart : int
+        FGMRES restart dimension
+    rtol : float
+        Relative nullspace residual tolerance
+    maxit : int
+        Maximum iterations
+    work : :class:`.FGMRES_WorkSpace`, optional
+        Buffer space
+    verbose : int, optional
+        Verbose level, default is 1; if verbose>1, then will print information
+        for each nullspace vector computation
+
+    Returns
+    -------
+    us : :class:`~numpy.ndarray`
+        Null-space components (normalized), stored in Fortran order and
+        shape[1] is at most n_null
+    its : :class:`~numpy.ndarray`
+        History of number of FGMRES iteration for all null-space components
+    its_ir : :class:`~numpy.ndarray`
+        History of number of iterative refinements for all null-space components
+    """
+    A = to_crs(A)
+    mul_ax_func = _select_mul_ax_kernel(np.iscomplexobj(A), A.indptr.dtype.itemsize * 8)
+    n = A.shape[0]
+    if work is None:
+        work = FGMRES_WorkSpace(n, restart, A.data.dtype)
+    else:
+        if not issubclass(work.__class__, FGMRES_WorkSpace):
+            raise TypeError("workspace must be FGMRES_WorkSpace")
+    bs = _generate_rand_orth(n, n_null)
+    null_it = 0
+    its = np.empty(n_null, dtype=int)
+    its_ir = its.copy()
+    x = np.zeros(n, dtype=work.dtype)
+    if verbose > 1:
+        print("Starting computing {} null-space components...".format(null_it))
+    while True:
+        if M.schur_size == M.schur_rank:
+            # Preconditioner is exactly singular
+            work.v[:] = bs[:, null_it]
+            _iter_refine(
+                A,
+                M,
+                16,
+                work.v,
+                bs[:, null_it],
+                work.w,
+                work.u,
+                leftnull,
+                mul_ax_func,
+                beta_U=1e8,
+                bnorm=1.0,
+            )
+            bs[:, null_it] /= np.linalg.norm(bs[:, null_it])
+        x, flag, its_k, its_ir_k = _fgmres_null(
+            A,
+            bs[:, null_it],
+            M,
+            leftnull,
+            restart,
+            rtol,
+            maxit,
+            x,
+            True,
+            work,
+            mul_ax_func,
+        )
+        if verbose > 1:
+            if flag == 0:
+                print(
+                    "Finished the {} component with {} GMRES iterations and".format(
+                        null_it, its_k
+                    )
+                )
+                print("{} inner refinements.".format(its_ir_k))
+            elif flag == 1:
+                print("Reached maximum iterations for {} component.".format(null_it))
+            elif flag == 3:
+                print(
+                    "{} null-space component stagnated with {} GMRES iterations".format(
+                        null_it, its_k
+                    )
+                )
+                print("and {} inner refinements.".format(its_ir_k))
+        if flag:
+            break
+        bs[:, null_it] = x
+        its[null_it] = its_k
+        its_ir[null_it] = its_ir_k
+        null_it += 1
+        if null_it >= n_null:
+            break
+        x[:] = 0.0
+    us = _make_orth(bs[:, :null_it])
+    return us, its[:null_it], its_ir[:null_it]
+
+
+def _generate_rand_orth(n, m):
+    """Generate random orthogonal RHS"""
+    bs, _ = np.linalg.qr(np.random.rand(n, m))
+    return np.asfortranarray(bs)
+
+
+def _make_orth(us):
+    if us.size == 0:
+        return us
+    us, _ = np.linalg.qr(us)
+    return np.asfortranarray(us)
 
 
 def _fgmres_null(  # noqa: C901
@@ -62,7 +193,6 @@ def _fgmres_null(  # noqa: C901
 ):
     """Single nullspace solver using customized HIFIR-FGMRES with Householder"""
     import scipy.sparse.linalg as spla
-    import scipy.linalg as la
 
     max_outer_iters = int(np.ceil(maxit / restart))
     flag = 0
@@ -110,7 +240,7 @@ def _fgmres_null(  # noqa: C901
             work.v[:] = -2.0 * np.conj(work.Q[j, j]) * work.Q[j, :]
             work.v[j] += 1.0
             for i in range(j - 1, -1, -1):
-                work.v -= 2.0 * np.vdot(work.Q[i, :], work.v) * work.Q[i, :]
+                work.v[i:] -= 2.0 * np.vdot(work.Q[i, i:], work.v[i:]) * work.Q[i, i:]
             work.v /= np.linalg.norm(work.v)
             work.u2[:] = work.v
             ref_its = _iter_refine(
@@ -132,7 +262,7 @@ def _fgmres_null(  # noqa: C901
 
             # Orthogonalize the Krylov vector
             for i in range(j + 1):
-                work.w -= 2.0 * np.vdot(work.Q[i, :], work.w) * work.Q[i, :]
+                work.w[i:] -= 2.0 * np.vdot(work.Q[i, i:], work.w[i:]) * work.Q[i, i:]
             # Update the rotators
             if j < n:
                 work.u[j] = 0.0
@@ -187,11 +317,8 @@ def _fgmres_null(  # noqa: C901
             if kappa >= form_x_thres:
                 # Explicitly form x
                 work.u2[:] = x
-                y2 = la.solve_triangular(
-                    work.R[: j + 1, : j + 1], work.y[: j + 1], lower=False
-                )
-                for i in range(j + 1):
-                    work.u2 += y2[i] * work.Z[i, :]
+                work.w2[: j + 1] = work.y[: j + 1]
+                _form_x(work.R, j, work.w2, work.Z, work.u2)
                 mul_ax_func(
                     A.indptr, A.indices, A.data, work.u2, work.w, trans=leftnull
                 )
@@ -209,15 +336,10 @@ def _fgmres_null(  # noqa: C901
                 null_res_prev = err
             j += 1
         # Inf loop
-        la.solve_triangular(
-            work.R[: j + 1, : j + 1], work.y[: j + 1], lower=False, overwrite_b=True
-        )
-        for i in range(j + 1):
-            x += work.y[i] * work.Z[i, :]
+        _form_x(work.R, j, work.y, work.Z, x)
         if err <= rtol or flag:
             break
-    if flag == 0:
-        x /= np.linalg.norm(x)
+    x /= np.linalg.norm(x)
     return x, flag, it, ref_iters
 
 
@@ -259,6 +381,7 @@ def _iter_refine(
 
 
 def _est_abs_cond(R, i, inrm, nrm, buf):
+    """Estimate the abs condition number"""
     if i == 0:
         buf[0] = 1.0 / R[0, 0]
         inrm = nrm = abs(buf[0])
@@ -270,3 +393,12 @@ def _est_abs_cond(R, i, inrm, nrm, buf):
         inrm = max(inrm, abs(buf[i]))
         nrm = max(nrm, np.linalg.norm(R[: i + 1, i], ord=1))
     return inrm * nrm, inrm, nrm
+
+
+def _form_x(R, j, y, Z, x):
+    """Explicitly form the solution x"""
+    import scipy.linalg as la
+
+    la.solve_triangular(R[: j + 1, : j + 1], y[: j + 1], lower=False, overwrite_b=True)
+    for i in range(j + 1):
+        x += y[i] * Z[i, :]
