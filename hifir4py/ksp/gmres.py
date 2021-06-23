@@ -18,9 +18,13 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.    #
 ###############################################################################
 """Right-preconditioned GMRES with HIF"""
-
 import time
+import typing
 import numpy as np
+import scipy.linalg as la
+from . import mul_crs_ax
+from ..hif import HIF
+from ..utils import to_crs, must_1d, ensure_same, Tuple, List
 
 __all__ = ["GMRES_WorkSpace", "gmres_hif", "gmres"]
 
@@ -56,7 +60,7 @@ class GMRES_WorkSpace:
     >>> work = GMRES_WorkSpace(10)
     """
 
-    def __init__(self, n: int, restart=30, dtype=np.float64):
+    def __init__(self, n: int, restart: int = 30, dtype: np.dtype = np.float64):
         """Constructor of workspace buffer for GMRES
 
         Parameters
@@ -79,22 +83,24 @@ class GMRES_WorkSpace:
         self.w2 = np.zeros(restart, dtype=dtype)
 
     @property
-    def dtype(self):
+    def dtype(self) -> np.dtype:
         """numpy.dtype: NumPy data type"""
         return self.y.dtype
 
     @property
-    def size(self):
+    def size(self) -> int:
         """int: Size (length) of the workspace"""
         return self.v.size
 
     @property
-    def restart(self):
+    def restart(self) -> int:
         """int: Restart dimension"""
         return self.R.shape[0]
 
 
-def gmres_hif(A, b, M=None, **kw):  # noqa: C901
+def gmres_hif(
+    A, b, M: HIF = None, **kw
+) -> Tuple[np.ndarray, int, dict]:  # pylint: disable=unsubscriptable-object
     r"""HIF-preconditioned (right) restarted GMRES
 
     This function implements the right-preconditioned GMRES(restart) with HIF
@@ -185,9 +191,6 @@ def gmres_hif(A, b, M=None, **kw):  # noqa: C901
     >>> # One can then update M and repeated call gmres_hif as above
     >>> print("total #iters = {}".format(info["iters"]))
     """
-    import scipy.linalg as la
-    from ..utils import to_crs, must_1d, ensure_same
-
     must_1d(b)
     b = b.reshape(-1)
     A = to_crs(A)
@@ -222,9 +225,7 @@ def gmres_hif(A, b, M=None, **kw):  # noqa: C901
             },
         )
     # get matrix-vector kernel
-    mul_ax_kernel = _select_mul_ax_kernel(
-        np.iscomplexobj(A), A.indptr.dtype.itemsize * 8
-    )
+    mul_ax_kernel = _select_mul_ax_kernel(np.iscomplexobj(A), A.indptr.dtype.itemsize * 8)
     restart, rtol, maxit = _determine_gmres_pars(30, 1e-6, 500, **kw)
 
     # Begin to time the solve part
@@ -271,12 +272,9 @@ def gmres_hif(A, b, M=None, **kw):  # noqa: C901
             for col_j in range(j):
                 tmp = work.w2[col_j]
                 work.w2[col_j] = (
-                    np.conj(work.J[0, col_j]) * tmp
-                    + np.conj(work.J[1, col_j]) * work.w2[col_j + 1]
+                    np.conj(work.J[0, col_j]) * tmp + np.conj(work.J[1, col_j]) * work.w2[col_j + 1]
                 )
-                work.w2[col_j + 1] = (
-                    -work.J[1, col_j] * tmp + work.J[0, col_j] * work.w2[col_j + 1]
-                )
+                work.w2[col_j + 1] = -work.J[1, col_j] * tmp + work.J[0, col_j] * work.w2[col_j + 1]
             rho = np.sqrt(np.conj(work.w2[j]) * work.w2[j] + v_norm2)
             work.J[0, j] = work.w2[j] / rho
             work.J[1, j] = v_norm / rho
@@ -320,15 +318,9 @@ def gmres_hif(A, b, M=None, **kw):  # noqa: C901
         elif flag == 2:
             print("GMRES broke down!")
         elif flag == 3:
-            print(
-                "GMRES stagnated after {} iterations and {:.4g}s.".format(it, t_solve)
-            )
+            print("GMRES stagnated after {} iterations and {:.4g}s.".format(it, t_solve))
         else:
-            print(
-                "GMRES failed to converge after {} iterations and {:.4g}s.".format(
-                    it, t_solve
-                )
-            )
+            print("GMRES failed to converge after {} iterations and {:.4g}s.".format(it, t_solve))
     return (
         x,
         flag,
@@ -346,7 +338,12 @@ def gmres(*args, **kw):
     return gmres_hif(*args, **kw)
 
 
-def _determine_gmres_pars(restart_default: int, rtol_default, maxit_default: int, **kw):
+def _determine_gmres_pars(
+    restart_default: int,
+    rtol_default: typing.Union[float, List[float]],  # pylint: disable=unsubscriptable-object
+    maxit_default: int,
+    **kw
+):
     """Helper function to determine core GMRES parameters"""
     restart = kw.pop("restart", restart_default)
     if restart is None or restart < 1:
@@ -360,20 +357,18 @@ def _determine_gmres_pars(restart_default: int, rtol_default, maxit_default: int
     return restart, rtol, maxit
 
 
-def _select_mul_ax_kernel(is_complex: bool, index_size: int):
+def _select_mul_ax_kernel(is_complex: bool, index_size: int) -> typing.Callable[..., None]:
     """Helper function to select matrix-vector kernel"""
-    from . import mul_crs_ax
-
     if index_size not in (32, 64):
         raise ValueError("Must be either int32 or int64")
     v = "d" if not is_complex else "z"
     return getattr(mul_crs_ax, "{}i{}_multiply".format(v, index_size))
 
 
-def _get_M(A, M, verbose, **kw):
+def _get_M(
+    A, M: HIF, verbose: int, **kw
+) -> Tuple[HIF, float]:  # pylint: disable=unsubscriptable-object
     """Helper function to get M"""
-    from ..hif import HIF
-
     if M is None:
         start = time.time()
         M = HIF(A, verbose=verbose > 1, **kw)

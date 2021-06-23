@@ -23,7 +23,7 @@ import typing
 import numpy as np
 import scipy.sparse.linalg as spla
 from . import _hifir
-from .utils import to_crs, must_1d, ensure_same
+from .utils import to_crs, must_1d, ensure_same, Tuple
 
 __all__ = ["Params", "Verbose", "Reorder", "Pivoting", "HIF"]
 
@@ -362,7 +362,7 @@ class HIF:
         return 0 if self.empty() else self.__hif.ncols
 
     @property
-    def shape(self) -> typing.Tuple[int, int]:
+    def shape(self) -> Tuple[int, int]:  # pylint: disable=unsubscriptable-object
         """tuple: 2-tuple of the preconditioner shape, i.e., (:attr:`nrows`, :attr:`ncols`)"""
         return (self.nrows, self.ncols)
 
@@ -500,9 +500,7 @@ class HIF:
             or self.is_complex() != is_complex
         ):
             self.__hif = _create_cpphif(self._S.indptr.dtype, is_complex, is_mixed)
-        self.__hif.factorize(
-            self._S.indptr, self._S.indices, self._S.data, params._params
-        )
+        self.__hif.factorize(self._S.indptr, self._S.indices, self._S.data, params._params)
 
     def apply(self, b: np.ndarray, **kw) -> np.ndarray:
         """Apply the preconditioner with a given operation (op)

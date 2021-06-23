@@ -18,14 +18,19 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.    #
 ###############################################################################
 """PIPIT solver for pseudoinverse (aka minimal-norm) solution"""
-
 import time
 import numpy as np
+import scipy.sparse.linalg as spla
+from .orth_null import FGMRES_WorkSpace, orth_null
+from .gmres import gmres_hif, _get_M, _determine_gmres_pars
+from ..utils import to_crs, must_1d, ensure_same, Tuple, Dict
 
 __all__ = ["pipit_hifir", "pipit"]
 
 
-def pipit_hifir(A, b, n_null: int, M=None, **kw):  # noqa: C901
+def pipit_hifir(  # noqa: C901
+    A, b: np.ndarray, n_null: int, M=None, **kw
+) -> Tuple[np.ndarray, Dict[str, np.ndarray], int, dict]:  # pylint: disable=unsubscriptable-object
     """PIPIT solver for solving the pseudoinverse solution
 
     PIPIT implements a pseudoinverse solution solver with small dimension of
@@ -78,11 +83,6 @@ def pipit_hifir(A, b, n_null: int, M=None, **kw):  # noqa: C901
     --------
     :func:`~hifir4py.ksp.gmres_hif`
     """
-    import scipy.sparse.linalg as spla
-    from .orth_null import FGMRES_WorkSpace, orth_null
-    from .gmres import gmres_hif, _get_M, _determine_gmres_pars
-    from ..utils import to_crs, must_1d, ensure_same
-
     assert n_null > 0
     must_1d(b)
     b = b.reshape(-1)
@@ -133,24 +133,12 @@ def pipit_hifir(A, b, n_null: int, M=None, **kw):  # noqa: C901
                 sum(its_left)
             )
         )
-        print(
-            "and total {} inner refinements in {:.4g}s.".format(
-                sum(its_ir_left), t_leftnull
-            )
-        )
+        print("and total {} inner refinements in {:.4g}s.".format(sum(its_ir_left), t_leftnull))
 
     if verbose:
         print("\nStarting GMRES for least-squares solution...")
     x, flag, stats = gmres_hif(
-        A,
-        b,
-        M=M,
-        restart=restart,
-        rtol=rtol,
-        maxit=maxit,
-        work=work,
-        verbose=verbose,
-        **kw
+        A, b, M=M, restart=restart, rtol=rtol, maxit=maxit, work=work, verbose=verbose, **kw
     )
     t_ls = stats["times"][1]
     stats["times"] = [t_fac, t_leftnull, t_ls, 0.0]
@@ -185,9 +173,7 @@ def pipit_hifir(A, b, n_null: int, M=None, **kw):  # noqa: C901
                 )
             )
             print(
-                "and total {} inner refinements in {:.4g}s.".format(
-                    sum(its_ir_right), t_rightnull
-                )
+                "and total {} inner refinements in {:.4g}s.".format(sum(its_ir_right), t_rightnull)
             )
         stats["times"][3] = t_rightnull
     # projecting off the null space

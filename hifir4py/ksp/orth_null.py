@@ -18,10 +18,11 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.    #
 ###############################################################################
 """Right-preconditioned FGMRES with HIFIR for solving nullspace"""
-
+import typing
 import numpy as np
+import scipy.sparse.linalg as spla
 from .gmres import GMRES_WorkSpace, _select_mul_ax_kernel
-from ..utils import to_crs
+from ..utils import to_crs, Tuple
 
 __all__ = ["FGMRES_WorkSpace", "orth_null"]
 
@@ -45,16 +46,16 @@ class FGMRES_WorkSpace(GMRES_WorkSpace):
 
 
 def orth_null(
-    A,
+    A,  # CRS
     n_null: int,
-    M,
+    M,  # HIF
     leftnull: bool,
     restart: int,
     rtol: float,
     maxit: int,
-    work=None,
-    verbose=1,
-):
+    work: typing.Optional[FGMRES_WorkSpace] = None,
+    verbose: int = 1,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:  # pylint: disable=unsubscriptable-object
     """Compute multiple (small dimension) null-space components
 
     Parameters
@@ -138,9 +139,7 @@ def orth_null(
         if verbose > 1:
             if flag == 0:
                 print(
-                    "Finished the {} component with {} GMRES iterations and".format(
-                        null_it, its_k
-                    )
+                    "Finished the {} component with {} GMRES iterations and".format(null_it, its_k)
                 )
                 print("{} inner refinements.".format(its_ir_k))
             elif flag == 1:
@@ -165,35 +164,33 @@ def orth_null(
     return us, its[:null_it], its_ir[:null_it]
 
 
-def _generate_rand_orth(n, m):
+def _generate_rand_orth(n: int, m: int) -> np.ndarray:
     """Generate random orthogonal RHS"""
     bs, _ = np.linalg.qr(np.random.rand(n, m))
     return np.asfortranarray(bs)
 
 
-def _make_orth(us):
+def _make_orth(us: np.ndarray) -> np.ndarray:
     if us.size == 0:
         return us
     us, _ = np.linalg.qr(us)
     return np.asfortranarray(us)
 
 
-def _fgmres_null(  # noqa: C901
-    A,
-    b,
-    M,
+def _fgmres_null(
+    A,  # CRS
+    b: np.ndarray,
+    M,  # HIF
     leftnull: bool,
     restart: int,
     rtol: float,
     maxit: int,
-    x,
+    x: np.ndarray,
     zero_start: bool,
     work: FGMRES_WorkSpace,
-    mul_ax_func,
-):
+    mul_ax_func: typing.Callable[..., None],
+) -> Tuple[np.ndarray, int, int, int]:  # pylint: disable=unsubscriptable-object
     """Single nullspace solver using customized HIFIR-FGMRES with Householder"""
-    import scipy.sparse.linalg as spla
-
     max_outer_iters = int(np.ceil(maxit / restart))
     flag = 0
     it = 0
@@ -275,9 +272,7 @@ def _fgmres_null(  # noqa: C901
                     if work.u[j + 1] < 0.0:
                         alpha = -alpha
                     if j + 1 < restart:
-                        updated_norm = np.sqrt(
-                            2.0 * alpha2 + 2.0 * np.real(work.u[j + 1]) * alpha
-                        )
+                        updated_norm = np.sqrt(2.0 * alpha2 + 2.0 * np.real(work.u[j + 1]) * alpha)
                         work.u[j + 1] += alpha
                         work.Q[j + 1, j + 1 :] = work.u[j + 1 :] / updated_norm
                     work.w[j + 2 :] = 0.0
@@ -288,16 +283,12 @@ def _fgmres_null(  # noqa: C901
             for col_j in range(j):
                 tmp = work.w[col_j]
                 work.w[col_j] = (
-                    np.conj(work.J[0, col_j]) * tmp
-                    + np.conj(work.J[1, col_j]) * work.w[col_j + 1]
+                    np.conj(work.J[0, col_j]) * tmp + np.conj(work.J[1, col_j]) * work.w[col_j + 1]
                 )
-                work.w[col_j + 1] = (
-                    -work.J[1, col_j] * tmp + work.J[0, col_j] * work.w[col_j + 1]
-                )
+                work.w[col_j + 1] = -work.J[1, col_j] * tmp + work.J[0, col_j] * work.w[col_j + 1]
             if j < n:
                 rho = np.sqrt(
-                    np.conj(work.w[j]) * work.w[j]
-                    + np.conj(work.w[j + 1]) * work.w[j + 1]
+                    np.conj(work.w[j]) * work.w[j] + np.conj(work.w[j + 1]) * work.w[j + 1]
                 )
                 work.J[0, j] = work.w[j] / rho
                 work.J[1, j] = work.w[j + 1] / rho
@@ -319,12 +310,8 @@ def _fgmres_null(  # noqa: C901
                 work.u2[:] = x
                 work.w2[: j + 1] = work.y[: j + 1]
                 _form_x(work.R, j, work.w2, work.Z, work.u2)
-                mul_ax_func(
-                    A.indptr, A.indices, A.data, work.u2, work.w, trans=leftnull
-                )
-                err = np.linalg.norm(work.w, ord=1) / (
-                    A_1nrm * np.linalg.norm(work.u2, ord=1)
-                )
+                mul_ax_func(A.indptr, A.indices, A.data, work.u2, work.w, trans=leftnull)
+                err = np.linalg.norm(work.w, ord=1) / (A_1nrm * np.linalg.norm(work.u2, ord=1))
                 if err <= rtol:
                     break
                 if err >= null_res_prev:
@@ -344,21 +331,21 @@ def _fgmres_null(  # noqa: C901
 
 
 def _iter_refine(
-    A,
-    M,
-    nirs,
-    b,
-    x,
-    w,
-    r,
-    leftnull,
-    mul_ax_func,
+    A,  # CRS
+    M,  # HIF
+    nirs: int,
+    b: np.ndarray,
+    x: np.ndarray,
+    w: np.ndarray,
+    r: np.ndarray,
+    leftnull: bool,
+    mul_ax_func: typing.Callable[..., None],
     *,
-    fgmres_iter=-1,
-    beta_L=0.2,
-    beta_U=10.0,
-    bnorm=None,
-):
+    fgmres_iter: int = -1,
+    beta_L: float = 0.2,
+    beta_U: float = 10.0,
+    bnorm: typing.Optional[float] = None,
+) -> int:
     """Customized iterative refinement"""
     if fgmres_iter == 0:
         nirs = min(nirs, 4)
@@ -380,7 +367,9 @@ def _iter_refine(
     return it
 
 
-def _est_abs_cond(R, i, inrm, nrm, buf):
+def _est_abs_cond(
+    R: np.ndarray, i: int, inrm: float, nrm: float, buf: np.ndarray
+) -> typing.Tuple[float, float, float]:
     """Estimate the abs condition number"""
     if i == 0:
         buf[0] = 1.0 / R[0, 0]
@@ -395,7 +384,7 @@ def _est_abs_cond(R, i, inrm, nrm, buf):
     return inrm * nrm, inrm, nrm
 
 
-def _form_x(R, j, y, Z, x):
+def _form_x(R: np.ndarray, j: int, y: np.ndarray, Z: np.ndarray, x: np.ndarray) -> None:
     """Explicitly form the solution x"""
     import scipy.linalg as la
 
