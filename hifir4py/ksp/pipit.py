@@ -26,11 +26,64 @@ __all__ = ["pipit_hifir", "pipit"]
 
 
 def pipit_hifir(A, b, n_null: int, M=None, **kw):  # noqa: C901
+    """PIPIT solver for solving the pseudoinverse solution
+
+    PIPIT implements a pseudoinverse solution solver with small dimension of
+    nullspace. The system can be potentially inconsistent in that the RHS
+    vector may not fully in the range of A.
+
+    Parameters
+    ----------
+    A : :class:`~scipy.sparse.csr_matrix`
+        User input matrix
+    b : :class:`~numpy.ndarray`
+        User input RHS
+    n_null : int
+        Nullspace dimension (>0)
+    M : :class:`~hifir4py.HIF`, optional
+        HIF preconditioner
+    x0 : :class:`~numpy.ndarray`, optional
+        Initial guess, default is zeros; if passed in, this will be overwritten
+        by the solution.
+    verbose : {0,1,2}, optional
+        Verbose level, 0 disables the verbose printing, while 1 enables HIF
+        verbose logging; default is 1.
+    restart : int, optional
+        Restart dimension, default is 30
+    rtols : list, optional
+        Legnth-two list storing the relative tolerance thresholds, default is
+        [1e-6, 1e-12], where the former is for solving least-squares solution
+        using HIF-GMRES, and the latter is for solving nullspaces.
+    work : :class:`.FGMRES_WorkSpace`, optional
+        Workspace buffer, by default, the solver creates all buffer space.
+    vs : :class:`~numpy.ndarray`, optional
+        User-provided right nullspace; if not given, then ``vs`` will be
+        computed on-the-fly.
+
+    Returns
+    -------
+    x : :class:`~numpy.ndarray`
+        The computed pseudoinverse solution, which overwrites ``x0`` if provided
+    ns : dict
+        A dictionary of ``{"us": lns, "vs": rns}`` where ``lns`` and ``rns``
+        are left and right null-space components, respectively.
+    flag : int
+        Termination flag for LS solver.
+    info : dict
+        Statistics for LS solver plus runtimes for factorization, left nullspace
+        computation, LS computation, and right nullspace computation stages,
+        i.e., ``info["times"]=[t_fac,t_lns,t_ls,t_rns]``.
+
+    See Also
+    --------
+    :func:`~hifir4py.ksp.gmres_hif`
+    """
     import scipy.sparse.linalg as spla
     from .orth_null import FGMRES_WorkSpace, orth_null
     from .gmres import gmres_hif, _get_M, _determine_gmres_pars
     from ..utils import to_crs, must_1d, ensure_same
 
+    assert n_null > 0
     must_1d(b)
     b = b.reshape(-1)
     A = to_crs(A)
