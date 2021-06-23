@@ -38,3 +38,11 @@ def must_1d(x):
     """Helper function to ensure array must be 1D"""
     if (len(x.shape) > 1 and x.shape[1] != 1) or len(x.shape) > 2:
         raise ValueError("Must be 1D array")
+
+
+def ensure_same(a, b, msg=None):
+    """Helper to ensure same length (or values)"""
+    if a != b:
+        if msg is None:
+            msg = "Unmatched sizes"
+        raise ValueError("{} {} != {}".format(msg, a, b))

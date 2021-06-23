@@ -22,7 +22,7 @@
 import enum
 import numpy as np
 from ._hifir import params_helper
-from .utils import to_crs, must_1d
+from .utils import to_crs, must_1d, ensure_same
 
 __all__ = ["Params", "Verbose", "Reorder", "Pivoting", "HIF"]
 
@@ -479,7 +479,8 @@ class HIF:
         is_complex = np.iscomplexobj(self._S)
         is_mixed = kw.pop("is_mixed", False)
         params = kw.pop("params", Params(**kw))
-        assert isinstance(params, Params), "Parameters must be Params type"
+        if not issubclass(params.__class__, Params):
+            raise TypeError("Parameters must be Params type")
         if (
             self.is_null()
             or self.index_size() != self._S.indptr.dtype.itemsize
@@ -548,12 +549,10 @@ class HIF:
             raise ValueError("The preconditioner is still empty")
         op = kw.pop("op", "s")
         op = op.lower()
-        assert op in ("s", "sh", "st", "m", "mh", "mt"), "Unknown operation {}".format(
-            op
-        )
+        if op not in ("s", "sh", "st", "m", "mh", "mt"):
+            raise ValueError("Unknown operation {}".format(op))
         must_1d(b)
-        if self._S.shape[0] != b.shape[0]:
-            raise ValueError("Unmatched sizes of input vector and preconditioner")
+        ensure_same(self._S.shape[0], b.shape[0])
         nirs = kw.pop("nirs", 1)
         rank = (
             kw.pop("rank", np.iinfo("uint64").max)
@@ -566,7 +565,7 @@ class HIF:
         # buffer
         x = kw.pop("x", np.empty(b.shape[0], dtype=b.dtype))
         must_1d(x)
-        assert x.shape[0] == b.shape[0], "Unmatched sizes for input buffer x"
+        ensure_same(x.shape[0], b.shape[0])
         if op[0] == "m":
             self.__hif.mmultiply(b.reshape(-1), x.reshape(-1), trans, rank)
         else:
@@ -607,7 +606,8 @@ def _create_cpphif(index_t, is_complex: bool, is_mixed: bool):
     """Select proper C++ preconditioner"""
     from . import _hifir
 
-    assert index_t in (np.int32, np.int64), "Must be int32 or int64"
+    if index_t not in (np.int32, np.int64):
+        raise ValueError("Must be int32 or int64")
     cpphif = "{}i{}hif"
     if index_t == np.int32:
         index_size = 32
@@ -622,6 +622,6 @@ def _create_cpphif(index_t, is_complex: bool, is_mixed: bool):
 
 def _ensure_similar(A, S):
     """Helper to make sure two CRS matrices are similar"""
-    assert A.indptr.dtype == S.indptr.dtype, "Unmatched index type"
-    assert A.data.dtype == S.data.dtype, "Unmatched value type"
-    assert A.shape == S.shape, "Unmatched sizes"
+    ensure_same(A.indptr.dtype, S.indptr.dtype, "Unmatched index type")
+    ensure_same(A.data.dtype, S.data.dtype, "Unmatched value type")
+    ensure_same(A.shape, S.shape, "Unmatched shapes")

@@ -68,8 +68,8 @@ class GMRES_WorkSpace:
         dtype : :class:`~numpy.dtype`
             Data type, default is double-precision real
         """
-        assert n > 0, "Invalid size {}".format(n)
-        assert restart > 0, "Invalid restart {}".format(restart)
+        if n <= 0 or restart <= 0:
+            raise ValueError("Invalid n ({}) or restart ({})".format(n, restart))
         self.y = np.zeros(restart + 1, dtype=dtype)
         self.R = np.zeros((restart, restart), dtype=dtype)
         self.Q = np.zeros((restart, n), dtype=dtype)
@@ -186,14 +186,14 @@ def gmres_hif(A, b, M=None, **kw):  # noqa: C901
     >>> print("total #iters = {}".format(info["iters"]))
     """
     import scipy.linalg as la
-    from ..utils import to_crs, must_1d
+    from ..utils import to_crs, must_1d, ensure_same
 
     must_1d(b)
     b = b.reshape(-1)
     A = to_crs(A)
-    assert A.dtype == b.dtype, "Unmatched dtypes"
+    ensure_same(A.dtype, b.dtype, "Unmatched dtypes")
     n = b.size
-    assert n == A.shape[0], "Unmatched sizes"
+    ensure_same(n, A.shape[0])
     verbose = kw.pop("verbose", 1)
     # compute factorization if necessary
     M, t_fac = _get_M(A, M, verbose, **kw)
@@ -206,7 +206,7 @@ def gmres_hif(A, b, M=None, **kw):  # noqa: C901
         x = np.zeros(n, dtype=b.dtype)
     must_1d(x)
     x = x.reshape(-1)
-    assert x.size == n, "Unmatched sizes"
+    ensure_same(x.size, n)
     beta0 = np.linalg.norm(b)
     if beta0 == 0.0:
         # quick return if possible
@@ -225,24 +225,17 @@ def gmres_hif(A, b, M=None, **kw):  # noqa: C901
     mul_ax_kernel = _select_mul_ax_kernel(
         np.iscomplexobj(A), A.indptr.dtype.itemsize * 8
     )
-    maxit = kw.pop("maxit", 500)
-    if maxit is None or maxit < 1:
-        maxit = 500
-    restart = kw.pop("restart", 30)
-    if restart is None or restart < 1:
-        restart = 30
-    rtol = kw.pop("rtol", 1e-6)
-    if rtol is None or rtol <= 0.0:
-        rtol = 1e-6
+    restart, rtol, maxit = _determine_gmres_pars(30, 1e-6, 500)
 
     # Begin to time the solve part
     t_start = time.time()
     work = kw.pop("work", GMRES_WorkSpace(n, restart, b.dtype))
     if work is None:
         work = GMRES_WorkSpace(n, restart, b.dtype)
-    assert issubclass(work.__class__, GMRES_WorkSpace), "Invalid workspace type"
-    assert work.size == n, "Unmatched sizes"
-    assert work.dtype == A.dtype, "Unmatched data types"
+    if not issubclass(work.__class__, GMRES_WorkSpace):
+        raise TypeError("Invalid workspace type")
+    ensure_same(work.size, n)
+    ensure_same(work.dtype, A.dtype, "Unmatched data types")
     max_outer_iters = int(np.ceil(maxit / restart))
     resids = np.empty(maxit)
     resid = 1.0
@@ -352,11 +345,26 @@ def gmres(*args, **kw):
     return gmres_hif(*args, **kw)
 
 
+def _determine_gmres_pars(restart_default: int, rtol_default, maxit_default: int, **kw):
+    """Helper function to determine core GMRES parameters"""
+    restart = kw.pop("restart", restart_default)
+    if restart is None or restart < 1:
+        restart = restart_default
+    rtol = kw.pop("rtol", rtol_default)
+    if rtol is None or (np.isscalar(rtol) and rtol <= 0.0):
+        rtol = rtol_default
+    maxit = kw.pop("maxit", maxit_default)
+    if maxit is None or maxit < 1:
+        maxit = maxit_default
+    return restart, rtol, maxit
+
+
 def _select_mul_ax_kernel(is_complex: bool, index_size: int):
     """Helper function to select matrix-vector kernel"""
     from . import mul_crs_ax
 
-    assert index_size in (32, 64), "Must be either int32 or int64"
+    if index_size not in (32, 64):
+        raise ValueError("Must be either int32 or int64")
     v = "d" if not is_complex else "z"
     return getattr(mul_crs_ax, "{}i{}_multiply".format(v, index_size))
 
@@ -369,9 +377,12 @@ def _get_M(A, M, verbose, **kw):
         start = time.time()
         M = HIF(A, verbose=verbose > 1, **kw)
         t_fac = time.time() - start
-        print("HIF factorization finished in {:.4g}s.".format(t_fac))
+        if verbose:
+            print("HIF factorization finished in {:.4g}s.".format(t_fac))
     else:
-        assert issubclass(M.__class__, HIF), "Must be (child of) HIF"
-        print("Preconditioned provided as input.")
+        if not issubclass(M.__class__, HIF):
+            raise TypeError("Must be (child of) HIF")
+        if verbose:
+            print("Preconditioned provided as input.")
         t_fac = 0.0
     return M, t_fac
