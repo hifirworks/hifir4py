@@ -20,6 +20,7 @@
 """Right-preconditioned FGMRES with HIFIR for solving nullspace"""
 import typing
 import numpy as np
+import scipy.linalg as la
 import scipy.sparse.linalg as spla
 from .gmres import GMRES_WorkSpace, _select_mul_ax_kernel
 from ..utils import to_crs, Tuple
@@ -386,8 +387,6 @@ def _est_abs_cond(
 
 def _form_x(R: np.ndarray, j: int, y: np.ndarray, Z: np.ndarray, x: np.ndarray) -> None:
     """Explicitly form the solution x"""
-    import scipy.linalg as la
-
     la.solve_triangular(R[: j + 1, : j + 1], y[: j + 1], lower=False, overwrite_b=True)
     for i in range(j + 1):
         x += y[i] * Z[i, :]
