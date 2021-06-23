@@ -303,10 +303,7 @@ def gmres_hif(
         la.solve_triangular(
             work.R[: j + 1, : j + 1], work.y[: j + 1], lower=False, overwrite_b=True
         )
-        work.v[:] = 0.0
-        for i in range(j + 1):
-            tmp = work.y[i]
-            work.v += tmp * work.Q[i, :]
+        np.dot(work.y[: j + 1], work.Q[: j + 1, :], out=work.v)
         work.w = M.apply(work.v, x=work.w)
         x += work.w
         if resid <= rtol or flag:
