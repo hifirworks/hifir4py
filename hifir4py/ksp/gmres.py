@@ -225,15 +225,16 @@ def gmres_hif(A, b, M=None, **kw):  # noqa: C901
     mul_ax_kernel = _select_mul_ax_kernel(
         np.iscomplexobj(A), A.indptr.dtype.itemsize * 8
     )
-    restart, rtol, maxit = _determine_gmres_pars(30, 1e-6, 500)
+    restart, rtol, maxit = _determine_gmres_pars(30, 1e-6, 500, **kw)
 
     # Begin to time the solve part
     t_start = time.time()
     work = kw.pop("work", GMRES_WorkSpace(n, restart, b.dtype))
     if work is None:
         work = GMRES_WorkSpace(n, restart, b.dtype)
-    if not issubclass(work.__class__, GMRES_WorkSpace):
-        raise TypeError("Invalid workspace type")
+    else:
+        if not issubclass(work.__class__, GMRES_WorkSpace):
+            raise TypeError("Invalid workspace type")
     ensure_same(work.size, n)
     ensure_same(work.dtype, A.dtype, "Unmatched data types")
     max_outer_iters = int(np.ceil(maxit / restart))
