@@ -82,3 +82,15 @@ API Reference
     :maxdepth: 1
 
     api
+
+
+Examples
+--------
+
+.. toctree::
+    :maxdepth: 1
+
+    demos/demo_apply
+    demos/demo_scipy
+    demos/demo_gmres
+    demos/demo_pipit

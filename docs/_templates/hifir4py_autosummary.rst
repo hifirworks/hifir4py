@@ -5,5 +5,3 @@
 .. autoclass:: {{ objname }}
    :members:
    :special-members:
-
-    .. autoclasstoc::
