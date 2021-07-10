@@ -503,7 +503,7 @@ class HIF:
         self.__hif.factorize(self._S.indptr, self._S.indices, self._S.data, params._params)
 
     def apply(self, b: np.ndarray, **kw) -> np.ndarray:
-        """Apply the preconditioner with a given operation (op)
+        r"""Apply the preconditioner with a given operation (op)
 
         This function is to apply the preconditioner in the following four
         different modes:
@@ -523,10 +523,29 @@ class HIF:
             insensitive; note that "SH" and "ST" are the same
         x : :class:`~numpy.ndarray`, optional
             Output result, can be passed in as workspace
+        betas : float or list, optional
+            The residual bound for iterative refinement. If a scalar is passed
+            in, then it is assumed to be lower bound (:math:`\beta_L`) and the
+            upper bound (:math:`\beta_U`) is set to be maximum value.
         nirs : int, optional
             Number of iterative refinement steps (default 1)
         rank : int, optional
             Numerical rank used in final Schur complement
+
+        Returns
+        -------
+        x : :class:`~numpy.ndarray`
+            Computed solution vector
+        iters : int, optional
+            If iterative refinement is enabled in triangular solve and residual
+            bounds betas is passed in, then this indicates the actual refinement
+            iterations.
+        flag : int, optional
+            If iterative refinement is enabled in triangular solve and residual
+            bounds betas is passed in, then this indicates the status of
+            iterative refinement. If flag==0, then the IR process converged;
+            if flag>0, then it diverged; otherwise, it reached maximum
+            iterative refinement limit (nirs).
 
         Examples
         --------
@@ -557,8 +576,7 @@ class HIF:
         self._make_sure_not_null()
         if self.empty():
             raise ValueError("The preconditioner is still empty")
-        op = kw.pop("op", "s")
-        op = op.lower()
+        op = kw.pop("op", "s").lower()
         if op not in ("s", "sh", "st", "m", "mh", "mt"):
             raise ValueError("Unknown operation {}".format(op))
         must_1d(b)
@@ -576,23 +594,43 @@ class HIF:
         x = kw.pop("x", np.empty(b.shape[0], dtype=b.dtype))
         must_1d(x)
         ensure_same(x.shape[0], b.shape[0])
+        flag = None
         if op[0] == "m":
             self.__hif.mmultiply(b.reshape(-1), x.reshape(-1), trans, rank)
         else:
             if nirs <= 1:
                 self.__hif.solve(b.reshape(-1), x.reshape(-1), trans, rank)
             else:
-                self.__hif.hifir(
-                    self._A.indptr,
-                    self._A.indices,
-                    self._A.data,
-                    b.reshape(-1),
-                    nirs,
-                    x.reshape(-1),
-                    trans,
-                    rank,
-                )
-        return x
+                betas = kw.pop("betas", None)
+                if betas is None:
+                    self.__hif.hifir(
+                        self._A.indptr,
+                        self._A.indices,
+                        self._A.data,
+                        b.reshape(-1),
+                        nirs,
+                        x.reshape(-1),
+                        trans,
+                        rank,
+                    )
+                else:
+                    if np.isscalar(betas):
+                        betas = [float(betas), np.finfo("double").max]
+                    betas = np.asarray(betas, dtype=float)
+                    flag = self.__hif.hifir_beta(
+                        self._A.indptr,
+                        self._A.indices,
+                        self._A.data,
+                        b.reshape(-1),
+                        nirs,
+                        betas.reshape(-1),
+                        x.reshape(-1),
+                        trans,
+                        rank,
+                    )
+        if flag is None:
+            return x
+        return x, 0, flag
 
     def to_scipy(self):
         """Compute a SciPy LinearOperator based on HIF
