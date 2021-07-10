@@ -245,6 +245,34 @@ class PyHIF : public HifType {
                    (_impl_type *)vals, WRAP);
     _base::hifir(A, B, nirs, X, trans, r);
   }
+
+  /*!
+   * @brief Perform multilevel triangular solve with IR and residual bounds
+   * @param[in] n Input vector and matrix size
+   * @param[in] rowptr Row pointer in CRS
+   * @param[in] colind Column indices in CRS
+   * @param[in] vals Data values in CRS
+   * @param[in] b Input RHS
+   * @param[in] nirs Number of IRs
+   * @param[in] betas Length-two vector of residual bounds (low,high)
+   * @param[out] x Output solution
+   * @param[in] trans Transpose/Hermitian tag (optional, default false)
+   * @param[in] r Final Schur complement rank (optional)
+   */
+  inline size_t hifir(const size_t n, const index_type *rowptr,
+                      const index_type *colind, const interface_type *vals,
+                      const interface_type *b, const size_t nirs,
+                      const double *betas, interface_type *x,
+                      const bool   trans = false,
+                      const size_t r     = static_cast<size_t>(-1)) const {
+    constexpr static bool WRAP = true;
+
+    const _array_type B(n, (_impl_type *)b, WRAP);
+    _array_type       X(n, (_impl_type *)x, WRAP);
+    _matrix_type      A(n, n, (index_type *)rowptr, (index_type *)colind,
+                   (_impl_type *)vals, WRAP);
+    return _base::hifir(A, B, nirs, betas, X, trans, r);
+  }
 };
 
 /*!

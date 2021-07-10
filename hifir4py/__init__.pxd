@@ -102,6 +102,12 @@ cdef extern from "hifir4py.hpp" namespace "hifir4py" nogil:
             const interface_type *b, const size_t nirs, interface_type *x,
             const bool trans, const size_t r) except +
 
+        # solving with iterative refinement and residual bounds
+        size_t hifir(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const interface_type *b, const size_t nirs, const double *betas,
+            interface_type *x, const bool trans, const size_t r) except +
+
     cdef cppclass di64PyHIF:
         ctypedef int64_t index_type
         ctypedef double interface_type
@@ -145,6 +151,12 @@ cdef extern from "hifir4py.hpp" namespace "hifir4py" nogil:
             const index_type *colind, const interface_type *vals,
             const interface_type *b, const size_t nirs, interface_type *x,
             const bool trans, const size_t r) except +
+
+        # solving with iterative refinement and residual bounds
+        size_t hifir(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const interface_type *b, const size_t nirs, const double *betas,
+            interface_type *x, const bool trans, const size_t r) except +
 
     cdef cppclass si32PyHIF:
         ctypedef int index_type
@@ -191,6 +203,12 @@ cdef extern from "hifir4py.hpp" namespace "hifir4py" nogil:
             const interface_type *b, const size_t nirs, interface_type *x,
             const bool trans, const size_t r) except +
 
+        # solving with iterative refinement and residual bounds
+        size_t hifir(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const interface_type *b, const size_t nirs, const double *betas,
+            interface_type *x, const bool trans, const size_t r) except +
+
     cdef cppclass si64PyHIF:
         ctypedef int64_t index_type
         # input is always double precision
@@ -236,6 +254,12 @@ cdef extern from "hifir4py.hpp" namespace "hifir4py" nogil:
             const interface_type *b, const size_t nirs, interface_type *x,
             const bool trans, const size_t r) except +
 
+        # solving with iterative refinement and residual bounds
+        size_t hifir(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const interface_type *b, const size_t nirs, const double *betas,
+            interface_type *x, const bool trans, const size_t r) except +
+
     cdef cppclass zi32PyHIF:
         ctypedef int index_type
         ctypedef void interface_type
@@ -279,6 +303,12 @@ cdef extern from "hifir4py.hpp" namespace "hifir4py" nogil:
             const index_type *colind, const interface_type *vals,
             const interface_type *b, const size_t nirs, interface_type *x,
             const bool trans, const size_t r) except +
+
+        # solving with iterative refinement and residual bounds
+        size_t hifir(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const interface_type *b, const size_t nirs, const double *betas,
+            interface_type *x, const bool trans, const size_t r) except +
 
     cdef cppclass zi64PyHIF:
         ctypedef int64_t index_type
@@ -324,6 +354,12 @@ cdef extern from "hifir4py.hpp" namespace "hifir4py" nogil:
             const interface_type *b, const size_t nirs, interface_type *x,
             const bool trans, const size_t r) except +
 
+        # solving with iterative refinement and residual bounds
+        size_t hifir(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const interface_type *b, const size_t nirs, const double *betas,
+            interface_type *x, const bool trans, const size_t r) except +
+
     cdef cppclass ci32PyHIF:
         ctypedef int index_type
         ctypedef void interface_type
@@ -368,6 +404,12 @@ cdef extern from "hifir4py.hpp" namespace "hifir4py" nogil:
             const interface_type *b, const size_t nirs, interface_type *x,
             const bool trans, const size_t r) except +
 
+        # solving with iterative refinement and residual bounds
+        size_t hifir(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const interface_type *b, const size_t nirs, const double *betas,
+            interface_type *x, const bool trans, const size_t r) except +
+
     cdef cppclass ci64PyHIF:
         ctypedef int64_t index_type
         ctypedef void interface_type
@@ -411,3 +453,9 @@ cdef extern from "hifir4py.hpp" namespace "hifir4py" nogil:
             const index_type *colind, const interface_type *vals,
             const interface_type *b, const size_t nirs, interface_type *x,
             const bool trans, const size_t r) except +
+
+        # solving with iterative refinement and residual bounds
+        size_t hifir(const size_t n, const index_type *rowptr,
+            const index_type *colind, const interface_type *vals,
+            const interface_type *b, const size_t nirs, const double *betas,
+            interface_type *x, const bool trans, const size_t r) except +

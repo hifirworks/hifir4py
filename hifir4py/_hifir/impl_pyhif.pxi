@@ -135,3 +135,21 @@ cdef class HIF:
         deref(self.M).hifir(
             n, &rowptr[0], &colind[0], &vals[0], &b[0], nirs, &x[0], trans, r
         )
+
+    def hifir_beta(
+        self,
+        index_t[::1] rowptr,
+        index_t[::1] colind,
+        value_t[::1] vals,
+        value_t[::1] b,
+        size_t nirs,
+        double[::1] betas,
+        value_t[::1] x,
+        bool trans,
+        size_t r,
+    ):
+        """Low-level triangular solve with IR and residual bounds"""
+        cdef size_t n = rowptr.size - 1
+        return deref(self.M).hifir(
+            n, &rowptr[0], &colind[0], &vals[0], &b[0], nirs, &betas[0], &x[0], trans, r
+        )
