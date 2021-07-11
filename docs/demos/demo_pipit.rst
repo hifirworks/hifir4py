@@ -1,3 +1,5 @@
+.. _demo_pipit:
+
 Demo for using ``hifir4py`` with its PIPIT solver
 =================================================
 

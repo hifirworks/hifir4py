@@ -1,3 +1,5 @@
+.. _demo_gmres:
+
 Demo for using ``hifir4py`` with built-in ``gmres_hif``
 =======================================================
 
