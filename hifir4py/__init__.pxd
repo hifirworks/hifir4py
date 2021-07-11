@@ -23,8 +23,9 @@
 
 # This is the core interface for hifir4py
 
-from libcpp.string cimport string as std_string
 from libcpp cimport bool
+from libcpp.string cimport string as std_string
+from libcpp.utility cimport pair
 from libc.stddef cimport size_t
 from libc.stdint cimport int64_t
 
@@ -103,7 +104,7 @@ cdef extern from "hifir4py.hpp" namespace "hifir4py" nogil:
             const bool trans, const size_t r) except +
 
         # solving with iterative refinement and residual bounds
-        size_t hifir(const size_t n, const index_type *rowptr,
+        pair[size_t, int] hifir(const size_t n, const index_type *rowptr,
             const index_type *colind, const interface_type *vals,
             const interface_type *b, const size_t nirs, const double *betas,
             interface_type *x, const bool trans, const size_t r) except +
@@ -153,7 +154,7 @@ cdef extern from "hifir4py.hpp" namespace "hifir4py" nogil:
             const bool trans, const size_t r) except +
 
         # solving with iterative refinement and residual bounds
-        size_t hifir(const size_t n, const index_type *rowptr,
+        pair[size_t, int] hifir(const size_t n, const index_type *rowptr,
             const index_type *colind, const interface_type *vals,
             const interface_type *b, const size_t nirs, const double *betas,
             interface_type *x, const bool trans, const size_t r) except +
@@ -204,7 +205,7 @@ cdef extern from "hifir4py.hpp" namespace "hifir4py" nogil:
             const bool trans, const size_t r) except +
 
         # solving with iterative refinement and residual bounds
-        size_t hifir(const size_t n, const index_type *rowptr,
+        pair[size_t, int] hifir(const size_t n, const index_type *rowptr,
             const index_type *colind, const interface_type *vals,
             const interface_type *b, const size_t nirs, const double *betas,
             interface_type *x, const bool trans, const size_t r) except +
@@ -255,7 +256,7 @@ cdef extern from "hifir4py.hpp" namespace "hifir4py" nogil:
             const bool trans, const size_t r) except +
 
         # solving with iterative refinement and residual bounds
-        size_t hifir(const size_t n, const index_type *rowptr,
+        pair[size_t, int] hifir(const size_t n, const index_type *rowptr,
             const index_type *colind, const interface_type *vals,
             const interface_type *b, const size_t nirs, const double *betas,
             interface_type *x, const bool trans, const size_t r) except +
@@ -305,7 +306,7 @@ cdef extern from "hifir4py.hpp" namespace "hifir4py" nogil:
             const bool trans, const size_t r) except +
 
         # solving with iterative refinement and residual bounds
-        size_t hifir(const size_t n, const index_type *rowptr,
+        pair[size_t, int] hifir(const size_t n, const index_type *rowptr,
             const index_type *colind, const interface_type *vals,
             const interface_type *b, const size_t nirs, const double *betas,
             interface_type *x, const bool trans, const size_t r) except +
@@ -355,7 +356,7 @@ cdef extern from "hifir4py.hpp" namespace "hifir4py" nogil:
             const bool trans, const size_t r) except +
 
         # solving with iterative refinement and residual bounds
-        size_t hifir(const size_t n, const index_type *rowptr,
+        pair[size_t, int] hifir(const size_t n, const index_type *rowptr,
             const index_type *colind, const interface_type *vals,
             const interface_type *b, const size_t nirs, const double *betas,
             interface_type *x, const bool trans, const size_t r) except +
@@ -405,7 +406,7 @@ cdef extern from "hifir4py.hpp" namespace "hifir4py" nogil:
             const bool trans, const size_t r) except +
 
         # solving with iterative refinement and residual bounds
-        size_t hifir(const size_t n, const index_type *rowptr,
+        pair[size_t, int] hifir(const size_t n, const index_type *rowptr,
             const index_type *colind, const interface_type *vals,
             const interface_type *b, const size_t nirs, const double *betas,
             interface_type *x, const bool trans, const size_t r) except +
@@ -455,7 +456,7 @@ cdef extern from "hifir4py.hpp" namespace "hifir4py" nogil:
             const bool trans, const size_t r) except +
 
         # solving with iterative refinement and residual bounds
-        size_t hifir(const size_t n, const index_type *rowptr,
+        pair[size_t, int] hifir(const size_t n, const index_type *rowptr,
             const index_type *colind, const interface_type *vals,
             const interface_type *b, const size_t nirs, const double *betas,
             interface_type *x, const bool trans, const size_t r) except +

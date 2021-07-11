@@ -617,7 +617,7 @@ class HIF:
                     if np.isscalar(betas):
                         betas = [float(betas), np.finfo("double").max]
                     betas = np.asarray(betas, dtype=float)
-                    flag = self.__hif.hifir_beta(
+                    iters, flag = self.__hif.hifir_beta(
                         self._A.indptr,
                         self._A.indices,
                         self._A.data,
@@ -630,7 +630,7 @@ class HIF:
                     )
         if flag is None:
             return x
-        return x, 0, flag
+        return x, iters, flag
 
     def to_scipy(self):
         """Compute a SciPy LinearOperator based on HIF

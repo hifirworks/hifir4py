@@ -259,12 +259,11 @@ class PyHIF : public HifType {
    * @param[in] trans Transpose/Hermitian tag (optional, default false)
    * @param[in] r Final Schur complement rank (optional)
    */
-  inline size_t hifir(const size_t n, const index_type *rowptr,
-                      const index_type *colind, const interface_type *vals,
-                      const interface_type *b, const size_t nirs,
-                      const double *betas, interface_type *x,
-                      const bool   trans = false,
-                      const size_t r     = static_cast<size_t>(-1)) const {
+  inline std::pair<size_t, int> hifir(
+      const size_t n, const index_type *rowptr, const index_type *colind,
+      const interface_type *vals, const interface_type *b, const size_t nirs,
+      const double *betas, interface_type *x, const bool trans = false,
+      const size_t r = static_cast<size_t>(-1)) const {
     constexpr static bool WRAP = true;
 
     const _array_type B(n, (_impl_type *)b, WRAP);
