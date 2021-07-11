@@ -9,5 +9,6 @@ graft docs
 graft examples
 global-exclude __pycache__
 global-exclude *.so
-global-exclude *.py[coix]
+global-exclude *.py[cox]
 global-exclude *.cpp
+global-exclude *.pxi

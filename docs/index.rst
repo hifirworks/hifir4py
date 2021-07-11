@@ -35,13 +35,12 @@ systems, please cite the following paper.
 
 .. code-block:: bibtex
 
-    @article{chen2021hilucsi,
+    @Article{chen2021hilucsi,
         author  = {Chen, Qiao and Ghai, Aditi and Jiao, Xiangmin},
         title   = {{HILUCSI}: Simple, robust, and fast multilevel {ILU} for
                    large-scale saddle-point problems from {PDE}s},
         journal = {Numer. Linear Algebra Appl.},
         year    = {2021},
-        note    = {To appear},
         doi     = {10.1002/nla.2400}
     }
 
@@ -50,7 +49,7 @@ recommend you to cite the following papers.
 
 .. code-block:: bibtex
 
-    @article{jiao2020approximate,
+    @Article{jiao2020approximate,
         author  = {Xiangmin Jiao and Qiao Chen},
         journal = {arxiv},
         title   = {Approximate generalized inverses with iterative refinement
@@ -59,7 +58,7 @@ recommend you to cite the following papers.
         note    = {arXiv:2009.01673}
     }
 
-    @article{chen2021hifir,
+    @Article{chen2021hifir,
         author  = {Chen, Qiao and Jiao, Xiangmin},
         title   = {{HIFIR}: Hybrid incomplete factorization with iterative
                    refinement for preconditioning ill-conditioned and singular
@@ -81,4 +80,17 @@ API Reference
 .. toctree::
     :maxdepth: 1
 
-    api
+    hif_api
+    ksp_api
+
+
+Examples
+--------
+
+.. toctree::
+    :maxdepth: 1
+
+    demos/demo_apply
+    demos/demo_scipy
+    demos/demo_gmres
+    demos/demo_pipit
