@@ -5,3 +5,4 @@
 .. autoclass:: {{ objname }}
    :members:
    :special-members:
+   :exclude-members: __weakref__
