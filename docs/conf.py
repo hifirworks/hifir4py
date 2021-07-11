@@ -18,10 +18,11 @@
 
 # -- Project information -----------------------------------------------------
 
+import datetime
 import hifir4py
 
 project = "hifir4py"
-copyright = "2019--2021, NumGeom Group at Stony Brook University"
+copyright = "2019-{}, NumGeom Group at Stony Brook University".format(datetime.date.today().year)
 author = "Qiao Chen"
 
 # The short X.Y version
@@ -55,6 +56,9 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
 }
 
+# If true, '()' will be appended to :func: etc. cross-reference text.
+add_function_parentheses = False
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
@@ -87,14 +91,22 @@ pygments_style = "sphinx"
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "sphinx_rtd_theme"
+# html_theme = "sphinx_rtd_theme"
 # html_theme = "nature"
+html_theme = "sizzle"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+# html_theme_options = {"github_url": "https://github.com/hifirworks/hifir4py"}
+
+# html_context = {
+#     "display_github": True,
+#     "github_user": "hifirworks",
+#     "github_repo": "hifir4py",
+#     "github_version": "main/docs/",
+# }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -142,9 +154,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
-latex_documents = [
-    (master_doc, "hifir4py.tex", "hifir4py Documentation", author, "manual")
-]
+latex_documents = [(master_doc, "hifir4py.tex", "hifir4py Documentation", author, "manual")]
 
 # -- Options for manual page output ------------------------------------------
 
