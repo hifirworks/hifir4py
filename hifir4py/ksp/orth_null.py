@@ -223,7 +223,7 @@ def _fgmres_null(
 
         # Inner iterations
         j = 0
-        nirs = 4 if it == 0 else 1 << (it_outer + 3)
+        nirs = 1 << (it_outer + 3)
         inrm = 0.0
         nrm = 0.0
         while True:
