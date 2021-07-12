@@ -104,24 +104,15 @@ def orth_null(
     its = np.empty(n_null, dtype=int)
     its_ir = its.copy()
     x = np.zeros(n, dtype=work.dtype)
+    op = "S" if not leftnull else "SH"
     if verbose > 1:
         print("Starting computing {} null-space components...".format(null_it))
     while True:
         if M.schur_size == M.schur_rank:
-            # Preconditioner is exactly singular
+            # Preconditioner is not singular, apply IR to the RHS
             work.v[:] = bs[:, null_it]
-            _iter_refine(
-                A,
-                M,
-                16,
-                work.v,
-                bs[:, null_it],
-                work.w,
-                work.u,
-                leftnull,
-                mul_ax_func,
-                beta_U=1e8,
-                bnorm=1.0,
+            bs[:, null_it], _, __ = M.apply(
+                work.v, op=op, x=bs[:, null_it], nirs=16, betas=[0.2, 1e8]
             )
             bs[:, null_it] /= np.linalg.norm(bs[:, null_it])
         x, flag, its_k, its_ir_k = _fgmres_null(
@@ -206,6 +197,7 @@ def _fgmres_null(
     inrm_buf = np.empty(restart + 1)
     n = b.size
     form_x_thres = min(np.sqrt(1.0 / rtol), 1e6)
+    op = "S" if not leftnull else "SH"
 
     # Main loop begins
     for it_outer in range(max_outer_iters):
@@ -231,7 +223,7 @@ def _fgmres_null(
 
         # Inner iterations
         j = 0
-        nirs = 1 << (it_outer + 3)
+        nirs = 4 if it == 0 else 1 << (it_outer + 3)
         inrm = 0.0
         nrm = 0.0
         while True:
@@ -241,19 +233,10 @@ def _fgmres_null(
                 work.v[i:] -= 2.0 * np.vdot(work.Q[i, i:], work.v[i:]) * work.Q[i, i:]
             work.v /= np.linalg.norm(work.v)
             work.u2[:] = work.v
-            ref_its = _iter_refine(
-                A,
-                M,
-                nirs,
-                work.u2,
-                work.v,  # output
-                work.w,
-                work.u,
-                leftnull,
-                mul_ax_func,
-                fgmres_iter=it,
-                bnorm=1.0,
-            )
+            if it == 0:
+                nirs = min(nirs, 4)
+            # IR
+            work.v, ref_its, _ = M.apply(work.u2, op=op, x=work.v, nirs=nirs, betas=[0.2, 10.0])
             ref_iters += ref_its
             work.Z[j, :] = work.v
             mul_ax_func(A.indptr, A.indices, A.data, work.v, work.w, trans=leftnull)
@@ -329,43 +312,6 @@ def _fgmres_null(
             break
     x /= np.linalg.norm(x)
     return x, flag, it, ref_iters
-
-
-def _iter_refine(
-    A,  # CRS
-    M,  # HIF
-    nirs: int,
-    b: np.ndarray,
-    x: np.ndarray,
-    w: np.ndarray,
-    r: np.ndarray,
-    leftnull: bool,
-    mul_ax_func: typing.Callable[..., None],
-    *,
-    fgmres_iter: int = -1,
-    beta_L: float = 0.2,
-    beta_U: float = 10.0,
-    bnorm: typing.Optional[float] = None,
-) -> int:
-    """Customized iterative refinement"""
-    if fgmres_iter == 0:
-        nirs = min(nirs, 4)
-    if bnorm is None:
-        bnorm = np.linalg.norm(b)
-    x[:] = 0.0
-    r[:] = b
-    op = "S" if not leftnull else "SH"
-    it = 0
-    while True:
-        w = M.apply(r, op=op, x=w, rank=-1)
-        x += w
-        mul_ax_func(A.indptr, A.indices, A.data, x, w, trans=leftnull)
-        r[:] = b - w
-        res = np.linalg.norm(r) / bnorm
-        it += 1
-        if it >= nirs or res > beta_U or res <= beta_L:
-            break
-    return it
 
 
 def _est_abs_cond(
