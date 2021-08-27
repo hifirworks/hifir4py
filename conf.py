@@ -28,7 +28,7 @@ _lapack_a = os.environ.get("HIFIR_LAPACK_STATIC_LIB", None)
 extra_objs = []
 libs = []
 if _lapack_a is not None and _lapack_a:
-    _lapack_lib = []
+    _lapack_libs = []
     extra_objs = _lapack_a.split(" ")
     # For static linking we need to link to fortran runtime
     # TODO: make this portable
@@ -92,8 +92,6 @@ class BuildExt(build_ext):
                 opts.append("-fopenmp")
         for ext in self.extensions:
             ext.extra_compile_args = opts
-            if has_omp:
-                ext.extra_link_args = ["-fopenmp"]
         super().build_extensions()
 
 
