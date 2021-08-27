@@ -46,6 +46,7 @@ __VERBOSE_PRE__ = hifir4py.VERBOSE_PRE
 __VERBOSE_FAC__ = hifir4py.VERBOSE_FAC
 __VERBOSE_PRE_TIME__ = hifir4py.VERBOSE_PRE_TIME
 __VERBOSE_MEM__ = hifir4py.VERBOSE_MEM
+__VERBOSE_INFO2__ = hifir4py.VERBOSE_INFO2
 
 # reorderingoptions
 __REORDER_OFF__ = hifir4py.REORDER_OFF
