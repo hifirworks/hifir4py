@@ -1,6 +1,8 @@
 Python3 Interface for HIFIR (``hifir4py``)
 ==========================================
 
+.. image:: https://github.com/hifirworks/hifir4py/actions/workflows/python-app.yml/badge.svg?branch=main
+    :target: https://github.com/hifirworks/hifir4py/actions/workflows/python-app.yml
 .. image:: https://img.shields.io/pypi/v/hifir4py.svg?branch=main
     :target: https://pypi.org/project/hifir4py/
 .. image:: https://img.shields.io/pypi/pyversions/hifir4py.svg?style=flat-square
