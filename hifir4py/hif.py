@@ -326,6 +326,10 @@ class HIF:
         """:class:`~scipy.sparse.csr_matrix`: User-input CRS (CSR) matrix"""
         return self._A
 
+    @A.setter
+    def A(self, A):
+        self._A = to_crs(A)
+
     @property
     def S(self):
         """:class:`~scipy.sparse.csr_matrix`: User-input CRS (CSR) sparsifier"""
@@ -384,6 +388,13 @@ class HIF:
     def empty(self) -> bool:
         """Check emptyness"""
         return self.__hif is None or self.__hif.empty()
+
+    def update(self, A) -> None:
+        """Update the A matrix used in IR
+
+        .. note:: This function does not perform factorization on ``A``.
+        """
+        self.A = A
 
     def __repr__(self) -> str:
         """Representation of a HIF instance"""
@@ -501,6 +512,61 @@ class HIF:
         ):
             self.__hif = _create_cpphif(self._S.indptr.dtype, is_complex, is_mixed)
         self.__hif.factorize(self._S.indptr, self._S.indices, self._S.data, params._params)
+
+    def refactorize(self, S, **kw) -> None:
+        """Refactorize a sparsifier
+
+        .. note::
+
+            This function is similar to :func:`factorize`, but differs in that
+            this function doesn't update the A matrix.
+
+        Parameters
+        ----------
+        S : :class:`~scipy.sparse.csr_matrix`
+            Sparsifier input (on which we will compute HIF)
+        is_mixed : bool, optional
+            Whether or not using mixed-precision (using single)
+        params : :class:`.Params`, optional
+            Control parameters, using default values if not provided
+
+        See Also
+        --------
+        update
+
+        Examples
+        --------
+
+        >>> from scipy.sparse import rand
+        >>> from hifir4py import *
+        >>> hif = HIF(rand(10, 10, 0.5))
+        >>> A1 = hif.A
+        >>> A2 = rand(10, 10, 0.5)
+        >>> hif.refactorize(A2)
+        >>> assert A1 is hif.A
+
+        The following example illustrates how to update IR operator ``A`` and
+        factorization asynchronously. In particular, we refactorize every 10
+        iterations, but update IR operator for every step.
+
+        >>> import numpy as np
+        >>> from scipy.sparse import rand
+        >>> from hifir4py import *
+        >>> hif = HIF(rand(10, 10, 0.5)) # initial HIF
+        >>> b = np.random.rand(10)
+        >>> for i in range(100):
+        >>>     x = hif.apply(b, nirs=2)  # 2-iter refinement with hif.A
+        >>>     A = rand(10, 10, 0.5)
+        >>>     hif.update(A)  # update A, or equiv as hif.A = A
+        >>>     if i % 10 == 0:
+        >>>         hif.refactorize(A)  # refactorization
+        """
+        A_bak = self._A
+        kw.pop("S", None)  # remove S in kw
+        self.factorize(S, **kw)
+        if A_bak is not None:
+            _ensure_similar(A_bak, self._S)
+            self._A = A_bak  # resume to the old A
 
     def apply(self, b: np.ndarray, **kw) -> np.ndarray:
         r"""Apply the preconditioner with a given operation (op)

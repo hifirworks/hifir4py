@@ -71,12 +71,12 @@ constexpr static int NUM_PARAMS = _HIF_TOTAL_OPTIONS;
 ///< total number of parameters
 
 const static std::vector<std::string> params_pos2tag = {
-    "tau_L",     "tau_U",         "kappa_d", "kappa",     "alpha_L",
-    "alpha_U",   "rho",           "c_d",     "c_h",       "N",
-    "verbose",   "rf_par",        "reorder", "spd",       "check",
-    "pre_scale", "symm_pre_lvls", "threads", "mumps_blr", "fat_schur_1st",
-    "rrqr_cond", "pivot",         "gamma",   "beta",      "is_symm",
-    "no_pre"};
+    "tau_L",     "tau_U",         "kappa_d",    "kappa",     "alpha_L",
+    "alpha_U",   "rho",           "c_d",        "c_h",       "N",
+    "verbose",   "rf_par",        "reorder",    "spd",       "check",
+    "pre_scale", "symm_pre_lvls", "threads",    "mumps_blr", "fat_schur_1st",
+    "rrqr_cond", "pivot",         "gamma",      "beta",      "is_symm",
+    "no_pre",    "nzp_thres",     "dense_thres"};
 ///< position to tag mapping for \ref hif::Params
 
 /*!
@@ -111,6 +111,8 @@ inline void set_default_params(double *params) {
   params[t2p.at("beta")]          = hif::DEFAULT_PARAMS.beta;
   params[t2p.at("is_symm")]       = hif::DEFAULT_PARAMS.is_symm;
   params[t2p.at("no_pre")]        = hif::DEFAULT_PARAMS.no_pre;
+  params[t2p.at("nzp_thres")]     = hif::DEFAULT_PARAMS.nzp_thres;
+  params[t2p.at("dense_thres")]   = hif::DEFAULT_PARAMS.dense_thres;
 }
 
 /*!

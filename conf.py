@@ -5,9 +5,36 @@
 
 import os
 import glob
+import tempfile
+import zipfile
+import shutil
+import atexit
+import urllib.request
 from setuptools import Extension
 from setuptools.command.build_ext import build_ext
 from Cython.Build import cythonize
+
+
+_version = "0.1.0"
+
+
+def get_hifir():
+    tmp_path = tempfile.gettempdir()
+    with urllib.request.urlopen(
+        "https://github.com/hifirworks/hifir/archive/refs/tags/v{}.zip".format(_version)
+    ) as url_f:
+        with open(os.path.join(tmp_path, "hifir.zip"), "wb") as out_f:
+            out_f.write(url_f.read())
+    zipfile.ZipFile(os.path.join(tmp_path, "hifir.zip")).extractall(tempfile.gettempdir())
+    # remove zip
+    shutil.rmtree(os.path.join(tmp_path, "hifir.zip"), ignore_errors=True)
+    hifir_include = os.path.join(tmp_path, "hifir-{}".format(_version), "src")
+
+    def rm_hifir_src():
+        shutil.rmtree(os.path.join(tmp_path, "hifir-{}".format(_version)), ignore_errors=True)
+
+    atexit.register(rm_hifir_src)
+    return hifir_include
 
 
 def is_debug():
@@ -19,7 +46,7 @@ def is_debug():
 
 _hifir4py_debug = is_debug()
 
-incs = [".", os.path.join("hifir", "src")]
+incs = [".", get_hifir()]
 
 # configure libraries
 _lapack_lib = os.environ.get("HIFIR_LAPACK_LIB", "-llapack")
@@ -28,15 +55,13 @@ _lapack_a = os.environ.get("HIFIR_LAPACK_STATIC_LIB", None)
 extra_objs = []
 libs = []
 if _lapack_a is not None and _lapack_a:
-    _lapack_lib = []
+    _lapack_libs = []
     extra_objs = _lapack_a.split(" ")
     # For static linking we need to link to fortran runtime
-    # TODO: make this portable
     libs = ["gfortran"]
-# NOTE: Assume -lxxx
-# TODO: make this portable
 for i, _l in enumerate(_lapack_libs):
-    _lapack_libs[i] = _l[2:]
+    if _lapack_libs[i].startswith("-l"):
+        _lapack_libs[i] = _l[2:]
 libs += _lapack_libs
 
 # configure library paths
@@ -64,17 +89,14 @@ class BuildExt(build_ext):
         cpl_type = self.compiler.compiler_type
 
         def test_switch(flag):
-            import tempfile
-
-            with tempfile.NamedTemporaryFile("w", suffix=".cpp") as f:
-                f.write("int main(int argc, char *argv[]){return 0;}")
+            with tempfile.NamedTemporaryFile("w", suffix=".cpp") as tmp_f:
+                tmp_f.write("int main(int argc, char *argv[]){return 0;}")
                 try:
-                    self.compiler.compile([f.name], extra_postargs=[flag])
+                    self.compiler.compile([tmp_f.name], extra_postargs=[flag])
                 except BaseException:
                     return False
             return True
 
-        has_omp = False
         if cpl_type == "unix":
             assert test_switch("-std=c++11"), "must have C++11 support"
             if test_switch("-std=c++1z"):
@@ -87,13 +109,8 @@ class BuildExt(build_ext):
                 opts.append("-rdynamic")
             if test_switch("-O3") and "-O3" not in self.compiler.compiler_so:
                 opts.append("-O3")
-            if test_switch("-fopenmp"):
-                has_omp = True
-                opts.append("-fopenmp")
         for ext in self.extensions:
             ext.extra_compile_args = opts
-            if has_omp:
-                ext.extra_link_args = ["-fopenmp"]
         super().build_extensions()
 
 

@@ -1,14 +1,42 @@
 Python3 Interface for HIFIR (``hifir4py``)
 ==========================================
 
+.. image:: https://github.com/hifirworks/hifir4py/actions/workflows/python-app.yml/badge.svg?branch=main
+    :target: https://github.com/hifirworks/hifir4py/actions/workflows/python-app.yml
+.. image:: https://img.shields.io/pypi/v/hifir4py.svg?branch=main
+    :target: https://pypi.org/project/hifir4py/
+.. image:: https://img.shields.io/pypi/pyversions/hifir4py.svg?style=flat-square
+    :target: https://pypi.org/project/hifir4py/
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 
 Welcome to the Python3 interface of HIFIR package--- *hifir4py*. The Python
 interface is implemented with Cython.
 
+Detailed documentation of ``hifir4py`` can be found at `<https://hifirworks.github.io/hifir4py>`_.
+
 Installation
 -------------
+
+One can simply use ``pip`` to install ``hifir4py``, i.e.,
+
+.. code:: console
+
+    pip3 install hifir4py --user
+
+Installation from Source
+------------------------
+
+It is also possible to install from the source. First, down load the most
+recent stable release
+
+.. code:: console
+
+    git clone -b release https://github.com/hifirworks/hifir4py.git
+
+You can update to the most recent version via ``git pull`` since ``git clone``
+or last ``git pull``. In addition, you can download the archives at
+`<https://github.com/hifirworks/hifir4py/releases>`_.
 
 You need to configure linking against LAPACK by setting the environment
 variable ``HIFIR_LAPACK_LIB`` whose default is ``-llapack``. If you

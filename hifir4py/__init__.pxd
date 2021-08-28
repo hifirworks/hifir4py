@@ -42,6 +42,7 @@ cdef extern from "hifir4py.hpp" namespace "hif" nogil:
         VERBOSE_FAC
         VERBOSE_PRE_TIME
         VERBOSE_MEM
+        VERBOSE_INFO2
     cdef enum:
         REORDER_OFF
         REORDER_AUTO

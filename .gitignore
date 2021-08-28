@@ -17,7 +17,6 @@ venv
 .venv
 .vscode
 lib64
-wheels
 *.egg
 .ycm_extra_conf.py
 *.exe
@@ -36,3 +35,5 @@ hifir4py/*/*.h
 docs/README.rst
 docs/generated
 .MATLABDriveTag
+wheelhouse
+temp-wheelhouse

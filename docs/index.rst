@@ -13,6 +13,18 @@ written in C++. HIFIR is desiable for preconditioning ill-conditioned
 and (potentially) singular systems to seek least-squares and/or the
 pseudoinverse solutions.
 
+Installation
+------------
+
+One can install ``hifir4py`` using ``pip``, i.e.,
+
+.. code-block:: sh
+
+    pip3 install hifir4py --user
+
+In addition, refer to `<https://github.com/hifirworks/hifir4py/releases>`_ for
+archives of different versions.
+
 Copyrights & Licenses
 ---------------------
 
@@ -94,3 +106,5 @@ Examples
     demos/demo_scipy
     demos/demo_gmres
     demos/demo_pipit
+
+.. include:: ../CHANGELOG.rst
