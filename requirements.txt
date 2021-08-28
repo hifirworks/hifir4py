@@ -1,4 +1,2 @@
 setuptools
 Cython
-numpy
-scipy>=1.5.1
