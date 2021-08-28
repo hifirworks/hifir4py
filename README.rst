@@ -1,6 +1,10 @@
 Python3 Interface for HIFIR (``hifir4py``)
 ==========================================
 
+.. image:: https://img.shields.io/pypi/v/hifir4py.svg?branch=main
+    :target: https://pypi.org/project/hifir4py/
+.. image:: https://img.shields.io/pypi/pyversions/hifir4py.svg?style=flat-square
+    :target: https://pypi.org/project/hifir4py/
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 
