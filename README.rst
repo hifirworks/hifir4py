@@ -24,6 +24,9 @@ One can simply use ``pip`` to install ``hifir4py``, i.e.,
 
     pip3 install hifir4py --user
 
+For Windows users, we recommend using `Windows Subsystem for Linux (WSL) <https://docs.microsoft.com/en-us/windows/wsl/>`_
+or `Cygwin <https://www.cygwin.com/>`_.
+
 Installation from Source
 ------------------------
 
