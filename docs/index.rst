@@ -7,7 +7,7 @@
 Introduction
 ------------
 
-``hifir4py`` is the Python interface of the HIFIR (Hybrid Incomplete
+``hifir4py`` is the Python3 interface of the HIFIR (Hybrid Incomplete
 Factorization with Iterative Refinement) preconditioner, which is originally
 written in C++. HIFIR is desiable for preconditioning ill-conditioned
 and (potentially) singular systems to seek least-squares and/or the

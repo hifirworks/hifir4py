@@ -60,9 +60,7 @@ shows how to link MKL (on Ubuntu).
 
 .. code:: console
 
-    export HIFIR_LAPACK_LIB="-lmkl_intel_lp64 -lmkl_sequential -lmkl_core"
-    export HIFIR_LAPACK_LIB_PATH=/opt/intel/mkl/lib/intel64
-    pip3 install . --user
+    HIFIR_LAPACK_LIB="-lmkl_intel_lp64 -lmkl_sequential -lmkl_core" HIFIR_LAPACK_LIB_PATH=/opt/intel/mkl/lib/intel64 pip3 install . --user
 
 Copyrights & Licenses
 ---------------------
