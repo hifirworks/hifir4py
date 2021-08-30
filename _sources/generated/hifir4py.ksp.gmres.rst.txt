@@ -1,0 +1,6 @@
+﻿hifir4py.ksp.gmres
+==================
+
+.. currentmodule:: hifir4py.ksp
+
+.. autofunction:: gmres

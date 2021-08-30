@@ -1,0 +1,9 @@
+﻿hifir4py.ksp.GMRES\_WorkSpace
+=============================
+
+.. currentmodule:: hifir4py.ksp
+
+.. autoclass:: GMRES_WorkSpace
+   :members:
+   :special-members:
+   :exclude-members: __weakref__

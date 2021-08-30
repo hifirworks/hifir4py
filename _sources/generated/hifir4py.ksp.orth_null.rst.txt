@@ -1,0 +1,6 @@
+﻿hifir4py.ksp.orth\_null
+=======================
+
+.. currentmodule:: hifir4py.ksp
+
+.. autofunction:: orth_null

@@ -1,0 +1,9 @@
+﻿hifir4py.Reorder
+================
+
+.. currentmodule:: hifir4py
+
+.. autoclass:: Reorder
+   :members:
+   :special-members:
+   :exclude-members: __weakref__

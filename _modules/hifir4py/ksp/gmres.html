@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en-gb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>hifir4py - hifir4py.ksp.gmres</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" integrity="sha256-NuCn4IvuZXdBaFKJOAcsU2Q3ZpwbdFisd5dux4jkQ5w=" crossorigin="anonymous"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha256-916EbMg70RQy9LHiGkXzG8hSg9EdNy97GazNG/aiY1w=" crossorigin="anonymous"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap-theme.css" integrity="sha256-xOpS+e/dER8z72w+qryCieOGysQI8cELAVt3MHG0phY=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tooltipster@4.2.7/dist/css/tooltipster.bundle.min.css" integrity="sha256-Qc4lCfqZWYaHF5hgEOFrYzSIX9Rrxk0NPHRac+08QeQ=" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tooltipster@4.2.7/dist/css/plugins/tooltipster/sideTip/themes/tooltipster-sideTip-light.min.css" integrity="sha256-Wa1I4jhSXeWd3N6RhfPlkqr1WlT+zS3Vh2YGCg0129E=" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Code+Pro|Source+Sans+Pro|Source+Serif+Pro|Roboto|Roboto+Mono" rel="stylesheet">
+<link href="https://fonts.red-dove.com/iosevka-ss09-regular/webfont.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/css/sizzle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/css/sizzle.css" type="text/css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.9.1/underscore-min.js" integrity="sha256-G7A4JrJjJlFqP0yamznwPjAApIKPkadeHfyIwiaa9e0=" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/tooltipster@4.2.7/dist/js/tooltipster.bundle.min.js" integrity="sha256-NOU7KrY2aTI4PxDegqYUIknk9qfxVCS0E4JfE9aMwaA=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js" integrity="sha256-FiZwavyI2V6+EXO1U+xzLG3IKldpiTFf3153ea9zikQ=" crossorigin="anonymous"></script>
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  false,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+      $(document).data('sizzle', {on_load: []});
+    </script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+      <script src="../../../../../../app-data.js"></script>
+<link rel="index" title="Index" href="../../../genindex.html" />
+<link rel="search" title="Search" href="../../../search.html" />
+
+</head>
+<body class="full-height test">
+<noscript>
+  <div>
+    <div id="noscript-message">JavaScript is not enabled. It is needed for this website to work.</div>
+  </div>
+</noscript>
+<div id="whole-page" class="container-fluid content full-height">
+  <div id="header-row" class="row">
+    <div id="header-container" class="col-md-12">
+      <div id="hdr-left">
+        <i class="fa fa-bars menu-toggle"></i>
+        
+<a href="../../../index.html" class="text-logo">hifir4py 0.1.0 documentation</a>
+
+      </div>
+      <div id="hdr-centre" class="text-center stretch">
+        <h3 title="hifir4py.ksp.gmres">hifir4py.ksp.gmres</h3>
+        <h6>hifir4py.ksp.gmres</h6>
+      </div>
+      <div id="hdr-search">
+        
+<div class="input-group" title="Enter something to search for and then either press Enter or click the magnifying glass">
+  <input type="text" class="form-control search-query" placeholder="Search docs ...">
+  <div class="input-group-addon">
+    <i class="fa fa-search"></i>
+  </div>
+</div>
+      </div>
+
+      <div id="hdr-index">
+        <a href="../../../genindex.html" class="btn btn-default" title="Go to the index"><i class="fa fa-list"></i></a>
+      </div>
+
+      <div id="hdr-right">
+        
+  
+      </div>
+      <div id="alt-hdr-right">
+
+
+        <a href="../../../index.html"><i class="fa fa-home mr-8"></i></a>
+
+
+        <a href="../../../search.html"><i class="fa fa-search mr-8"></i></a>
+
+
+        <a href="../../../genindex.html"><i class="fa fa-list mr-8"></i></a>
+
+
+      </div>
+    </div>
+  </div>
+
+  <div id="content-row" class="row">
+    <div id="page-content" class="col-md-12 flex-col">
+      <div id="content-container">
+        <div id="nav">
+          
+  <div class="navsidebar">
+    <div id="sidebar-search">
+      
+<div class="input-group" title="Enter something to search for and then either press Enter or click the magnifying glass">
+  <input type="text" class="form-control search-query" placeholder="Search docs ...">
+  <div class="input-group-addon">
+    <i class="fa fa-search"></i>
+  </div>
+</div>
+    </div>
+      <div class="sidebar-block">
+        <div class="sidebar-tocheading">
+          <div class="pull-left">
+            <h2>Table Of Contents</h2>
+          </div>
+          <div class="pull-right" title="Hide this sidebar (hover at left edge to bring it back)"><i class="fa fa-chevron-left hidetoc"></i></div>
+        </div>
+        <div class="sidebar-toc">
+      
+          <div id="toc-filter" title="Type in here to show only matching topics">
+            <input class="form-control" id="toc-filter-query" placeholder="Filter by title ...">
+          </div>
+      
+        
+  
+    <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../hif_api.html#hifir-preconditioner-for-python-hifir4py">HIFIR Preconditioner for Python (<code class="xref py py-mod docutils literal notranslate"><span class="pre">hifir4py</span></code>)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../hif_api.html#contents">Contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../hif_api.html#the-hif-preconditioner">The HIF preconditioner</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.HIF.html#hifir4py-hif">hifir4py.HIF</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../hif_api.html#control-parameters">Control Parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.Params.html#hifir4py-params">hifir4py.Params</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.Verbose.html#hifir4py-verbose">hifir4py.Verbose</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.Reorder.html#hifir4py-reorder">hifir4py.Reorder</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.Pivoting.html#hifir4py-pivoting">hifir4py.Pivoting</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../hif_api.html#example-usage">Example Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../hif_api.html#factorization">Factorization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../hif_api.html#applying-hif">Applying HIF</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../hif_api.html#using-in-ksp">Using in KSP</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ksp_api.html#ksp-solvers-using-hifir-hifir4py-ksp">KSP Solvers Using HIFIR (<code class="xref py py-mod docutils literal notranslate"><span class="pre">hifir4py.ksp</span></code>)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../ksp_api.html#contents">Contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../ksp_api.html#solvers">Solvers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.ksp.gmres_hif.html#hifir4py-ksp-gmres-hif">hifir4py.ksp.gmres_hif</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.ksp.gmres.html#hifir4py-ksp-gmres">hifir4py.ksp.gmres</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.ksp.pipit_hifir.html#hifir4py-ksp-pipit-hifir">hifir4py.ksp.pipit_hifir</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.ksp.pipit.html#hifir4py-ksp-pipit">hifir4py.ksp.pipit</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.ksp.orth_null.html#hifir4py-ksp-orth-null">hifir4py.ksp.orth_null</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../ksp_api.html#miscellany">Miscellany</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.ksp.GMRES_WorkSpace.html#hifir4py-ksp-gmres-workspace">hifir4py.ksp.GMRES_WorkSpace</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.ksp.FGMRES_WorkSpace.html#hifir4py-ksp-fgmres-workspace">hifir4py.ksp.FGMRES_WorkSpace</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../ksp_api.html#example-usage">Example Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../ksp_api.html#hif-preconditioned-gmres-m">HIF-preconditioned GMRES(<span class="math notranslate nohighlight">\(m\)</span>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../ksp_api.html#pipit-solver">PIPIT solver</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/demo_apply.html#demo-for-using-hifir4py">Demo for using <code class="docutils literal notranslate"><span class="pre">hifir4py</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../demos/demo_apply.html#factorize-hif">Factorize HIF</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../demos/demo_apply.html#apply-hif">Apply HIF</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/demo_scipy.html#demo-for-using-hifir4py-with-scipy-s-gmres">Demo for using <code class="docutils literal notranslate"><span class="pre">hifir4py</span></code> with SciPy’s GMRES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/demo_gmres.html#demo-for-using-hifir4py-with-built-in-gmres-hif">Demo for using <code class="docutils literal notranslate"><span class="pre">hifir4py</span></code> with built-in <code class="docutils literal notranslate"><span class="pre">gmres_hif</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/demo_pipit.html#demo-for-using-hifir4py-with-its-pipit-solver">Demo for using <code class="docutils literal notranslate"><span class="pre">hifir4py</span></code> with its PIPIT solver</a></li>
+</ul>
+
+  
+        </div>
+      </div>
+  </div>
+        </div>
+        <div id="content" tabindex="0" class="stretch">
+          <div id="mnav">
+            
+  
+    <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../hif_api.html#hifir-preconditioner-for-python-hifir4py">HIFIR Preconditioner for Python (<code class="xref py py-mod docutils literal notranslate"><span class="pre">hifir4py</span></code>)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../hif_api.html#contents">Contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../hif_api.html#the-hif-preconditioner">The HIF preconditioner</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.HIF.html#hifir4py-hif">hifir4py.HIF</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../hif_api.html#control-parameters">Control Parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.Params.html#hifir4py-params">hifir4py.Params</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.Verbose.html#hifir4py-verbose">hifir4py.Verbose</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.Reorder.html#hifir4py-reorder">hifir4py.Reorder</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.Pivoting.html#hifir4py-pivoting">hifir4py.Pivoting</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../hif_api.html#example-usage">Example Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../hif_api.html#factorization">Factorization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../hif_api.html#applying-hif">Applying HIF</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../hif_api.html#using-in-ksp">Using in KSP</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ksp_api.html#ksp-solvers-using-hifir-hifir4py-ksp">KSP Solvers Using HIFIR (<code class="xref py py-mod docutils literal notranslate"><span class="pre">hifir4py.ksp</span></code>)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../ksp_api.html#contents">Contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../ksp_api.html#solvers">Solvers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.ksp.gmres_hif.html#hifir4py-ksp-gmres-hif">hifir4py.ksp.gmres_hif</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.ksp.gmres.html#hifir4py-ksp-gmres">hifir4py.ksp.gmres</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.ksp.pipit_hifir.html#hifir4py-ksp-pipit-hifir">hifir4py.ksp.pipit_hifir</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.ksp.pipit.html#hifir4py-ksp-pipit">hifir4py.ksp.pipit</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.ksp.orth_null.html#hifir4py-ksp-orth-null">hifir4py.ksp.orth_null</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../ksp_api.html#miscellany">Miscellany</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.ksp.GMRES_WorkSpace.html#hifir4py-ksp-gmres-workspace">hifir4py.ksp.GMRES_WorkSpace</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../generated/hifir4py.ksp.FGMRES_WorkSpace.html#hifir4py-ksp-fgmres-workspace">hifir4py.ksp.FGMRES_WorkSpace</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../ksp_api.html#example-usage">Example Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../ksp_api.html#hif-preconditioned-gmres-m">HIF-preconditioned GMRES(<span class="math notranslate nohighlight">\(m\)</span>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../ksp_api.html#pipit-solver">PIPIT solver</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/demo_apply.html#demo-for-using-hifir4py">Demo for using <code class="docutils literal notranslate"><span class="pre">hifir4py</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../demos/demo_apply.html#factorize-hif">Factorize HIF</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../demos/demo_apply.html#apply-hif">Apply HIF</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/demo_scipy.html#demo-for-using-hifir4py-with-scipy-s-gmres">Demo for using <code class="docutils literal notranslate"><span class="pre">hifir4py</span></code> with SciPy’s GMRES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/demo_gmres.html#demo-for-using-hifir4py-with-built-in-gmres-hif">Demo for using <code class="docutils literal notranslate"><span class="pre">hifir4py</span></code> with built-in <code class="docutils literal notranslate"><span class="pre">gmres_hif</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demos/demo_pipit.html#demo-for-using-hifir4py-with-its-pipit-solver">Demo for using <code class="docutils literal notranslate"><span class="pre">hifir4py</span></code> with its PIPIT solver</a></li>
+</ul>
+
+  
+          </div>
+          <div class="body">
+            
+  <h1>Source code for hifir4py.ksp.gmres</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1">###############################################################################</span>
+<span class="c1">#                 This file is part of HIFIR4PY project                       #</span>
+<span class="c1">#                                                                             #</span>
+<span class="c1">#   Copyright (C) 2019--2021 NumGeom Group at Stony Brook University          #</span>
+<span class="c1">#                                                                             #</span>
+<span class="c1">#   This program is free software: you can redistribute it and/or modify      #</span>
+<span class="c1">#   it under the terms of the GNU Affero General Public License as published  #</span>
+<span class="c1">#   by the Free Software Foundation, either version 3 of the License, or      #</span>
+<span class="c1">#   (at your option) any later version.                                       #</span>
+<span class="c1">#                                                                             #</span>
+<span class="c1">#   This program is distributed in the hope that it will be useful,           #</span>
+<span class="c1">#   but WITHOUT ANY WARRANTY; without even the implied warranty of            #</span>
+<span class="c1">#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             #</span>
+<span class="c1">#   GNU Affero General Public License for more details.                       #</span>
+<span class="c1">#                                                                             #</span>
+<span class="c1">#   You should have received a copy of the GNU Affero General Public License  #</span>
+<span class="c1">#   along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.    #</span>
+<span class="c1">###############################################################################</span>
+<span class="sd">&quot;&quot;&quot;Right-preconditioned GMRES with HIF&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">typing</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy.linalg</span> <span class="k">as</span> <span class="nn">la</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">mul_crs_ax</span>
+<span class="kn">from</span> <span class="nn">..hif</span> <span class="k">import</span> <span class="n">HIF</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="k">import</span> <span class="n">to_crs</span><span class="p">,</span> <span class="n">must_1d</span><span class="p">,</span> <span class="n">ensure_same</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;GMRES_WorkSpace&quot;</span><span class="p">,</span> <span class="s2">&quot;gmres_hif&quot;</span><span class="p">,</span> <span class="s2">&quot;gmres&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="GMRES_WorkSpace"><a class="viewcode-back" href="../../../generated/hifir4py.ksp.GMRES_WorkSpace.html#hifir4py.ksp.GMRES_WorkSpace">[docs]</a><span class="k">class</span> <span class="nc">GMRES_WorkSpace</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Workspace class for GMRES solver</span>
+
+<span class="sd">    This class is a collection of all buffer arrays used in GMRES solver, i.e.,</span>
+<span class="sd">    :func:`.gmres_hif`. Users can create this buffer object *a priori*, so that</span>
+<span class="sd">    it will be efficient to invoke GMRES multiple times.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    y : :class:`~numpy.ndarray`</span>
+<span class="sd">        Length of restart+1</span>
+<span class="sd">    R : :class:`~numpy.ndarray`</span>
+<span class="sd">        restart-restart upper triangular matrix used in Arnoldi</span>
+<span class="sd">    Q : :class:`~numpy.ndarray`</span>
+<span class="sd">        restart-n used in Arnoldi</span>
+<span class="sd">    J : :class:`~numpy.ndarray`</span>
+<span class="sd">        2-restart used in Given&#39;s rotation</span>
+<span class="sd">    v, w : :class:`~numpy.ndarray`</span>
+<span class="sd">        Length-n arrays</span>
+<span class="sd">    w2 : :class:`~numpy.ndarray`</span>
+<span class="sd">        Length of restart</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    The following code constructs a workspace buffer that is length 10 and with</span>
+<span class="sd">    restart dimension 30.</span>
+
+<span class="sd">    &gt;&gt;&gt; from hifir4py.ksp import *</span>
+<span class="sd">    &gt;&gt;&gt; work = GMRES_WorkSpace(10)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GMRES_WorkSpace.__init__"><a class="viewcode-back" href="../../../generated/hifir4py.ksp.GMRES_WorkSpace.html#hifir4py.ksp.GMRES_WorkSpace.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">restart</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Constructor of workspace buffer for GMRES</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        n : int</span>
+<span class="sd">            Length of the RHS vector</span>
+<span class="sd">        restart : int, optional</span>
+<span class="sd">            Restart dimension of KSP, default is 30</span>
+<span class="sd">        dtype : :class:`~numpy.dtype`</span>
+<span class="sd">            Data type, default is double-precision real</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">restart</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid n (</span><span class="si">{}</span><span class="s2">) or restart (</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">restart</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">restart</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">restart</span><span class="p">,</span> <span class="n">restart</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">restart</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">J</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="n">restart</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">w2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">restart</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;numpy.dtype: NumPy data type&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">dtype</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;int: Size (length) of the workspace&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="o">.</span><span class="n">size</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">restart</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;int: Restart dimension&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="gmres_hif"><a class="viewcode-back" href="../../../generated/hifir4py.ksp.gmres_hif.html#hifir4py.ksp.gmres_hif">[docs]</a><span class="k">def</span> <span class="nf">gmres_hif</span><span class="p">(</span>
+    <span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">M</span><span class="p">:</span> <span class="n">HIF</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>  <span class="c1"># pylint: disable=unsubscriptable-object</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;HIF-preconditioned (right) restarted GMRES</span>
+
+<span class="sd">    This function implements the right-preconditioned GMRES(restart) with HIF</span>
+<span class="sd">    preconditioners for consistent systems. This function can be either called</span>
+<span class="sd">    as a &quot;one-time&quot; solver in that one can factorize HIF and compute the</span>
+<span class="sd">    solution at the same time, or can be called repeatedly where the user can</span>
+<span class="sd">    maintain the preconditioner and workspace buffer outside of this function.</span>
+<span class="sd">    The implementation follows the standard right-preconditioned GMRES with</span>
+<span class="sd">    restart; see *Iterative Methods for Sparse Linear Systems* by Saad.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    A : :class:`~scipy.sparse.csr_matrix`</span>
+<span class="sd">        Input CRS matrix</span>
+<span class="sd">    b : :class:`~numpy.ndarray`</span>
+<span class="sd">        Input RHS vector (1D)</span>
+<span class="sd">    M : :class:`~hifir4py.HIF`, optional</span>
+<span class="sd">        HIF preconditioner</span>
+<span class="sd">    x0 : :class:`~numpy.ndarray`, optional</span>
+<span class="sd">        Initial guess, default is zeros; if passed in, this will be overwritten</span>
+<span class="sd">        by the solution.</span>
+<span class="sd">    verbose : {0,1,2}, optional</span>
+<span class="sd">        Verbose level, 0 disables the verbose printing, while 1 enables HIF</span>
+<span class="sd">        verbose logging; default is 1.</span>
+<span class="sd">    restart : int, optional</span>
+<span class="sd">        Restart dimension, default is 30</span>
+<span class="sd">    rtol : float, optional</span>
+<span class="sd">        Relative tolerance threshold, default is 1e-6. The solver will terminate</span>
+<span class="sd">        if :math:`\Vert b-Ax\Vert\le\text{rtol}\Vert b\Vert`.</span>
+<span class="sd">    work : :class:`.GMRES_WorkSpace`, optional</span>
+<span class="sd">        Workspace buffer, by default, the solver creates all buffer space.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    x : :class:`~numpy.ndarray`</span>
+<span class="sd">        The computed solution, which overwrites ``x0`` if passed in.</span>
+<span class="sd">    flag : int</span>
+<span class="sd">        Solver termination flags: The solver either successfully finishes (0),</span>
+<span class="sd">        reaches the maximum iteration bound (1), breaks down due to NaN/Inf</span>
+<span class="sd">        residuals (2), or stagnates (3).</span>
+<span class="sd">    info : dict</span>
+<span class="sd">        Statistics of the solver, which are stored in a dictionary with fields:</span>
+<span class="sd">        total iterations (key ``&quot;iters&quot;``), final relative residual (key</span>
+<span class="sd">        ``&quot;relres&quot;``), relative residual history array (key ``&quot;resids&quot;``), and</span>
+<span class="sd">        factorization and solve runtimes (key ``&quot;times&quot;``).</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    For repeated calls of GMRES solver, one should at least maintain the buffer</span>
+<span class="sd">    outside of this function, so that it won&#39;t waste time in memory allocation</span>
+<span class="sd">    and deallocation. In addition, one can maintain the preconditioner object</span>
+<span class="sd">    ``M`` and update it whenever necessary; this is useful in solving dynamic</span>
+<span class="sd">    and/or transient problems.</span>
+
+<span class="sd">    Notice that one can pass the key-value pairs ``**kw`` in</span>
+<span class="sd">    :meth:`..HIF.factorize` to this function call if he/she plans to let this</span>
+<span class="sd">    solver build preconditioner.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    There are many ways one can use this GMRES solver.</span>
+
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; from scipy.sparse import rand</span>
+<span class="sd">    &gt;&gt;&gt; from hifir4py.ksp import *</span>
+<span class="sd">    &gt;&gt;&gt; A = rand(10, 10, 0.5)</span>
+<span class="sd">    &gt;&gt;&gt; b = A.dot(np.ones(10))</span>
+
+<span class="sd">    The simplest way is</span>
+
+<span class="sd">    &gt;&gt;&gt; x, flag, _ = gmres_hif(A, b)</span>
+
+<span class="sd">    which is equivalent to the following call</span>
+
+<span class="sd">    &gt;&gt;&gt; x, flag, _ = gmres_hif(A, b, M=None, verbose=1, restart=30, maxit=500,</span>
+<span class="sd">    ... rtol=1e-6, x0=None, work=None)</span>
+
+<span class="sd">    In addition, if ``M`` is ``None``, then one can pass any key-value pairs to</span>
+<span class="sd">    this function that serve as control parameters of the preconditioner.</span>
+
+<span class="sd">    The following illustrates how to maintain the preconditioner and workspace</span>
+<span class="sd">    buffer outside of the solver.</span>
+
+<span class="sd">    &gt;&gt;&gt; from hifir4py import *</span>
+<span class="sd">    &gt;&gt;&gt; M = HIF(A)</span>
+<span class="sd">    &gt;&gt;&gt; work = GMRES_WorkSpace(b.size)</span>
+<span class="sd">    &gt;&gt;&gt; x, flag, info = gmres_hif(A, b, M=M, work=work)</span>
+<span class="sd">    &gt;&gt;&gt; # One can then update M and repeated call gmres_hif as above</span>
+<span class="sd">    &gt;&gt;&gt; print(&quot;total #iters = {}&quot;.format(info[&quot;iters&quot;]))</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">must_1d</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">to_crs</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+    <span class="n">ensure_same</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="s2">&quot;Unmatched dtypes&quot;</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">size</span>
+    <span class="n">ensure_same</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">verbose</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;verbose&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># compute factorization if necessary</span>
+    <span class="n">M</span><span class="p">,</span> <span class="n">t_fac</span> <span class="o">=</span> <span class="n">_get_M</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+    <span class="n">it</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">flag</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;x0&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">zero_start</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">zero_start</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">b</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">must_1d</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">ensure_same</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+    <span class="n">beta0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">beta0</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="c1"># quick return if possible</span>
+        <span class="n">x</span><span class="p">[:]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span>
+            <span class="n">flag</span><span class="p">,</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;iters&quot;</span><span class="p">:</span> <span class="n">it</span><span class="p">,</span>
+                <span class="s2">&quot;relres&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+                <span class="s2">&quot;resids&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+                <span class="s2">&quot;times&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">t_fac</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+            <span class="p">},</span>
+        <span class="p">)</span>
+    <span class="c1"># get matrix-vector kernel</span>
+    <span class="n">mul_ax_kernel</span> <span class="o">=</span> <span class="n">_select_mul_ax_kernel</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">iscomplexobj</span><span class="p">(</span><span class="n">A</span><span class="p">),</span> <span class="n">A</span><span class="o">.</span><span class="n">indptr</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">*</span> <span class="mi">8</span><span class="p">)</span>
+    <span class="n">restart</span><span class="p">,</span> <span class="n">rtol</span><span class="p">,</span> <span class="n">maxit</span> <span class="o">=</span> <span class="n">_determine_gmres_pars</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="mf">1e-6</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+
+    <span class="c1"># Begin to time the solve part</span>
+    <span class="n">t_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">work</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;work&quot;</span><span class="p">,</span> <span class="n">GMRES_WorkSpace</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">restart</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">work</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">work</span> <span class="o">=</span> <span class="n">GMRES_WorkSpace</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">restart</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">GMRES_WorkSpace</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Invalid workspace type&quot;</span><span class="p">)</span>
+    <span class="n">ensure_same</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+    <span class="n">ensure_same</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">A</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="s2">&quot;Unmatched data types&quot;</span><span class="p">)</span>
+    <span class="n">max_outer_iters</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">maxit</span> <span class="o">/</span> <span class="n">restart</span><span class="p">))</span>
+    <span class="n">resids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">maxit</span><span class="p">)</span>
+    <span class="n">resid</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+    <span class="c1"># Main loop</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Starting GMRES iterations...&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">it_outer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_outer_iters</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">it_outer</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">zero_start</span><span class="p">:</span>
+            <span class="n">mul_ax_kernel</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">indptr</span><span class="p">,</span> <span class="n">A</span><span class="o">.</span><span class="n">indices</span><span class="p">,</span> <span class="n">A</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">v</span><span class="p">)</span>
+            <span class="n">work</span><span class="o">.</span><span class="n">v</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">b</span> <span class="o">-</span> <span class="n">work</span><span class="o">.</span><span class="n">v</span>
+            <span class="n">beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">work</span><span class="o">.</span><span class="n">v</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">b</span>
+            <span class="n">beta</span> <span class="o">=</span> <span class="n">beta0</span>
+        <span class="n">work</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">beta</span>
+        <span class="n">work</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">work</span><span class="o">.</span><span class="n">v</span> <span class="o">/</span> <span class="n">beta</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">work</span><span class="o">.</span><span class="n">v</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">work</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">work</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">v</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">work</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
+            <span class="n">mul_ax_kernel</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">indptr</span><span class="p">,</span> <span class="n">A</span><span class="o">.</span><span class="n">indices</span><span class="p">,</span> <span class="n">A</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">v</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vdot</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">v</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="p">:])</span>
+                <span class="n">work</span><span class="o">.</span><span class="n">v</span> <span class="o">-=</span> <span class="n">tmp</span> <span class="o">*</span> <span class="n">work</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="p">:]</span>
+                <span class="n">work</span><span class="o">.</span><span class="n">w2</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tmp</span>
+            <span class="n">v_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">v</span><span class="p">)</span>
+            <span class="n">v_norm2</span> <span class="o">=</span> <span class="n">v_norm</span> <span class="o">*</span> <span class="n">v_norm</span>
+            <span class="k">if</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="n">restart</span><span class="p">:</span>
+                <span class="n">work</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">work</span><span class="o">.</span><span class="n">v</span> <span class="o">/</span> <span class="n">v_norm</span>
+            <span class="c1"># Given&#39;s rotation</span>
+            <span class="k">for</span> <span class="n">col_j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">j</span><span class="p">):</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">work</span><span class="o">.</span><span class="n">w2</span><span class="p">[</span><span class="n">col_j</span><span class="p">]</span>
+                <span class="n">work</span><span class="o">.</span><span class="n">w2</span><span class="p">[</span><span class="n">col_j</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">J</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">col_j</span><span class="p">])</span> <span class="o">*</span> <span class="n">tmp</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">J</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">col_j</span><span class="p">])</span> <span class="o">*</span> <span class="n">work</span><span class="o">.</span><span class="n">w2</span><span class="p">[</span><span class="n">col_j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">work</span><span class="o">.</span><span class="n">w2</span><span class="p">[</span><span class="n">col_j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">work</span><span class="o">.</span><span class="n">J</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">col_j</span><span class="p">]</span> <span class="o">*</span> <span class="n">tmp</span> <span class="o">+</span> <span class="n">work</span><span class="o">.</span><span class="n">J</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">col_j</span><span class="p">]</span> <span class="o">*</span> <span class="n">work</span><span class="o">.</span><span class="n">w2</span><span class="p">[</span><span class="n">col_j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">rho</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">w2</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">*</span> <span class="n">work</span><span class="o">.</span><span class="n">w2</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="n">v_norm2</span><span class="p">)</span>
+            <span class="n">work</span><span class="o">.</span><span class="n">J</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">work</span><span class="o">.</span><span class="n">w2</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="n">rho</span>
+            <span class="n">work</span><span class="o">.</span><span class="n">J</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">v_norm</span> <span class="o">/</span> <span class="n">rho</span>
+            <span class="n">work</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">work</span><span class="o">.</span><span class="n">J</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">*</span> <span class="n">work</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">work</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">J</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span>
+            <span class="n">work</span><span class="o">.</span><span class="n">w2</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">rho</span>
+            <span class="n">work</span><span class="o">.</span><span class="n">R</span><span class="p">[:</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">work</span><span class="o">.</span><span class="n">w2</span><span class="p">[:</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">resid_prev</span> <span class="o">=</span> <span class="n">resid</span>
+            <span class="n">resid</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="n">beta0</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">resid</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">resid</span><span class="p">):</span>
+                <span class="n">flag</span> <span class="o">=</span> <span class="mi">2</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="n">resid</span> <span class="o">&gt;=</span> <span class="n">resid_prev</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="mf">1e-8</span><span class="p">):</span>
+                <span class="n">flag</span> <span class="o">=</span> <span class="mi">3</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="n">it</span> <span class="o">&gt;=</span> <span class="n">maxit</span><span class="p">:</span>
+                <span class="n">flag</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="k">break</span>
+            <span class="n">resids</span><span class="p">[</span><span class="n">it</span><span class="p">]</span> <span class="o">=</span> <span class="n">resid</span>
+            <span class="n">it</span> <span class="o">+=</span> <span class="mi">1</span>  <span class="c1"># increment total iterations</span>
+            <span class="k">if</span> <span class="n">resid</span> <span class="o">&lt;=</span> <span class="n">rtol</span> <span class="ow">or</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&gt;=</span> <span class="n">restart</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="c1"># finished inner inf loop</span>
+        <span class="c1"># backsolve</span>
+        <span class="n">la</span><span class="o">.</span><span class="n">solve_triangular</span><span class="p">(</span>
+            <span class="n">work</span><span class="o">.</span><span class="n">R</span><span class="p">[:</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">work</span><span class="o">.</span><span class="n">y</span><span class="p">[:</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">overwrite_b</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">y</span><span class="p">[:</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">work</span><span class="o">.</span><span class="n">Q</span><span class="p">[:</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="n">out</span><span class="o">=</span><span class="n">work</span><span class="o">.</span><span class="n">v</span><span class="p">)</span>
+        <span class="n">work</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">v</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">work</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">+=</span> <span class="n">work</span><span class="o">.</span><span class="n">w</span>
+        <span class="k">if</span> <span class="n">resid</span> <span class="o">&lt;=</span> <span class="n">rtol</span> <span class="ow">or</span> <span class="n">flag</span><span class="p">:</span>
+            <span class="k">break</span>
+    <span class="n">t_solve</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t_start</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">flag</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Computed solution in </span><span class="si">{}</span><span class="s2"> iterations and </span><span class="si">{:.4g}</span><span class="s2">s.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="n">t_solve</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">flag</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;GMRES broke down!&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">flag</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;GMRES stagnated after </span><span class="si">{}</span><span class="s2"> iterations and </span><span class="si">{:.4g}</span><span class="s2">s.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="n">t_solve</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;GMRES failed to converge after </span><span class="si">{}</span><span class="s2"> iterations and </span><span class="si">{:.4g}</span><span class="s2">s.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="n">t_solve</span><span class="p">))</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">x</span><span class="p">,</span>
+        <span class="n">flag</span><span class="p">,</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;iters&quot;</span><span class="p">:</span> <span class="n">it</span><span class="p">,</span>
+            <span class="s2">&quot;relres&quot;</span><span class="p">:</span> <span class="n">resid</span><span class="p">,</span>
+            <span class="s2">&quot;resids&quot;</span><span class="p">:</span> <span class="n">resids</span><span class="p">[:</span><span class="n">it</span><span class="p">],</span>
+            <span class="s2">&quot;times&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">t_fac</span><span class="p">,</span> <span class="n">t_solve</span><span class="p">],</span>
+        <span class="p">},</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="gmres"><a class="viewcode-back" href="../../../generated/hifir4py.ksp.gmres.html#hifir4py.ksp.gmres">[docs]</a><span class="k">def</span> <span class="nf">gmres</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;An alias of :func:`.gmres_hif`&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">gmres_hif</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_determine_gmres_pars</span><span class="p">(</span>
+    <span class="n">restart_default</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">rtol_default</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>  <span class="c1"># pylint: disable=unsubscriptable-object</span>
+    <span class="n">maxit_default</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kw</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper function to determine core GMRES parameters&quot;&quot;&quot;</span>
+    <span class="n">restart</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;restart&quot;</span><span class="p">,</span> <span class="n">restart_default</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">restart</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">restart</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">restart</span> <span class="o">=</span> <span class="n">restart_default</span>
+    <span class="n">rtol</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;rtol&quot;</span><span class="p">,</span> <span class="n">rtol_default</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">rtol</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">rtol</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rtol</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">):</span>
+        <span class="n">rtol</span> <span class="o">=</span> <span class="n">rtol_default</span>
+    <span class="n">maxit</span> <span class="o">=</span> <span class="n">kw</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;maxit&quot;</span><span class="p">,</span> <span class="n">maxit_default</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">maxit</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">maxit</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">maxit</span> <span class="o">=</span> <span class="n">maxit_default</span>
+    <span class="k">return</span> <span class="n">restart</span><span class="p">,</span> <span class="n">rtol</span><span class="p">,</span> <span class="n">maxit</span>
+
+
+<span class="k">def</span> <span class="nf">_select_mul_ax_kernel</span><span class="p">(</span><span class="n">is_complex</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">index_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Helper function to select matrix-vector kernel&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">index_size</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must be either int32 or int64&quot;</span><span class="p">)</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="s2">&quot;d&quot;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">is_complex</span> <span class="k">else</span> <span class="s2">&quot;z&quot;</span>
+    <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mul_crs_ax</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">i</span><span class="si">{}</span><span class="s2">_multiply&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">index_size</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">_get_M</span><span class="p">(</span>
+    <span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">:</span> <span class="n">HIF</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">HIF</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>  <span class="c1"># pylint: disable=unsubscriptable-object</span>
+    <span class="sd">&quot;&quot;&quot;Helper function to get M&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">M</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">HIF</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+        <span class="n">t_fac</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;HIF factorization finished in </span><span class="si">{:.4g}</span><span class="s2">s.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t_fac</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">HIF</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Must be (child of) HIF&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Preconditioned provided as input.&quot;</span><span class="p">)</span>
+        <span class="n">t_fac</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">return</span> <span class="n">M</span><span class="p">,</span> <span class="n">t_fac</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="footer-row" class="row">
+
+    <div class="col-md-12">
+        <span></span><span class="pull-right">&copy; Copyright 2019-2021, NumGeom Group at Stony Brook University.
+        Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.1.2 and the
+        <a href="https://pypi.org/project/sphinx-sizzle-theme/"
+
+           title="0.0.9/821a5457 [2020-04-16T19:31:16]"
+
+        >Sizzle</a> theme.</span>
+    </div>
+
+  </div>
+</div>
+
+<div id="tooltips" class="hidden">
+</div>
+
+<script>
+$(document).ready(function() {
+  'use strict';
+  var $search = $('.search-query');
+
+  var $filter = $('#toc-filter-query');
+  var $toclist = $('.sidebar-toc > ul').find('li');
+
+  if ($toclist.length === 0) {
+    $toclist = $('.localtoc > ul').find('li');
+  }
+
+
+  var $nav = $('#nav');
+
+  //$('#whole-page').removeClass('hidden');
+  var nav_width = $nav.width();
+
+
+  var search_url = '../../../search.html';
+
+  function perform_search(e) {
+    var $elem;
+
+    if (e.type === 'keypress') {
+      $elem = $(e.target);
+    }
+    else if (e.type === 'click') {
+      $elem = $(e.target).parents('.input-group').find('input');
+    }
+    var q = $elem.val().trim();
+
+    if (q) {
+      var url = search_url + '?q=' + q + '&check_keywords=yes&area=default';
+
+      location.href = url;
+    }
+  }
+
+
+  function apply_filter() {
+    var s = $filter.val().trim().toLowerCase();
+
+    $toclist.find('a').removeClass('hidden');
+    $toclist.each(function() {
+      var $this = $(this);
+      var $link = $this.find('> a');
+      var t = $link.text().toLowerCase();
+      var show = t.indexOf(s) >= 0;
+
+      if (!show) {
+        $link.addClass('hidden');
+      }
+    });
+  }
+
+  $filter.on('keyup', function(e) {
+    apply_filter();
+  });
+
+
+
+  $search.on('keypress', function(e) {
+    if (e.which == 13) {
+      perform_search(e);
+    }
+  });
+  $search.parents('.input-group').find('.input-group-addon').on('click', perform_search);
+  $(document).on('click', '.summary .fa-caret-right', function(e) {
+    var $elem = $(e.target).parents('li');
+    var $next = $elem.next();
+    $elem.addClass('hidden');
+    $next.removeClass('hidden');
+  });
+  $(document).on('click', '.detail .fa-caret-down', function(e) {
+    var $elem = $(e.target).parents('li');
+    var $prev = $elem.prev();
+    $elem.addClass('hidden');
+    $prev.removeClass('hidden');
+  });
+
+  $('#content').on('click', function() {
+    $('#mnav').hide();
+  });
+
+  var counter = 0;
+  var timer = null;
+
+  function show_nav() {
+    $('#content').off('mousemove', track_mouse);
+    if (timer !== null) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    $nav.show();
+  }
+
+  function track_mouse(e) {
+    var x = e.clientX;
+
+    if (x < 15) {
+      ++counter;
+      if (timer === null) {
+        timer = setTimeout(show_nav, 2000);
+      }
+    }
+    else {
+      counter = 0;
+    }
+    if (counter >= 20) {
+      show_nav();
+    }
+  };
+
+  function hide_nav() {
+    $nav.hide();
+    counter = 0;
+    $('#content').on('mousemove', track_mouse);
+  }
+
+  $('.hidetoc').on('click', hide_nav);
+
+  $(document).on('keyup', function(e) {
+    if (e.ctrlKey) {
+      if (e.which == 37) {      // Ctrl+left arrow
+        hide_nav();
+      }
+      else if (e.which == 39) { // Ctrl+right arrow
+        show_nav();
+      }
+    }
+  });
+
+  $('.menu-toggle').on('click', function(e) {
+    $('#mnav').toggle();
+  });
+
+  function scroll_nav(frag) {
+    var sel = '#nav ' + (frag ? 'a[href="' + frag + '"]' : '.toctree-l1 a.current');
+
+    var $link = $(sel);
+
+    if ($link.length > 0) {
+      $link[0].scrollIntoView({block: 'center'});
+    }
+  }
+
+  // If the navigator is long, then the item we clicked on to get here might
+  // not be in view. Try to scroll it into the view - a slight delay is needed
+  // to get it to sync properly with other stuff going on (as the page has just
+  // loaded). Hence the setTimeout with a timeout of 0.
+
+  function do_scroll() {
+    scroll_nav(window.location.hash);
+  }
+
+  setTimeout(do_scroll, 0);
+
+  function adjust_size() {
+    // we need to set the height explicitly so that scrolling regions in the
+    // content area work properly.
+    var h = $('#page-content').height();
+
+    $('#nav, #content').height(h);
+    if ($('#nav').is(':visible')) {
+      $('#mnav').hide();
+    }
+  }
+
+  adjust_size();
+
+  $(window).on('resize', adjust_size);
+
+  function focus_content() {
+    $('#content').focus();  // so that keyboard can be used to scroll, etc.
+  }
+
+  setTimeout(focus_content, 150);
+
+  var sizzle = $(document).data('sizzle');
+
+  function make_tooltip(id, h, b) {
+    var $e = $('<div>').attr('id', id);
+    var $b = $('<div>').addClass('tc-body').html(b);
+
+    if (h) {
+      var $h = $('<div>').addClass('tc-heading').html(h);
+      $e.append($h);
+    }
+    $e.append($b);
+    return $e;
+  }
+
+  var default_tt_options = {
+    theme: ['tooltipster-light', 'tooltipster-light-customized'],
+    interactive: true,
+    maxWidth: 600,
+    contentCloning: true
+  };
+
+  function activate_tooltips() {
+    var $tt = $('.tt');
+
+    //console.log('tt links:', $tt.length);
+    $tt.tooltipster(default_tt_options);
+  }
+
+
+
+  function add_glossary_tooltips() {
+    var links = $('a');  // can qualify with .reference.internal
+    var glinks = {};
+    var pat = /(.*)\.html#(term-.*)$/;
+    var found = false;  // links in this document
+
+    $.each(links, function(i, link) {
+        var $link = $(link);
+        var href = $link.attr('href');
+        var m = href.match(pat);
+
+        if (m) {
+          var s = m[1].replace(/^(\.\.\/)+/, '');
+
+          if (s === sizzle.app_data.glossary.document) {
+            var k = m[2];
+
+            if (k in glinks) {
+              glinks[k].push($link);
+            }
+            else {
+              glinks[k] = [$link];
+            }
+            found = true;
+          }
+        }
+    });
+    if (found) {
+      var $t = $('#tooltips');
+      var data = sizzle.app_data.glossary.terms;
+
+      $.each(glinks, function(k, v) {
+        var d = data[k];
+
+        if (d) {  // as a sanity check
+          var s = 'tc-'+ k;
+          var $e = make_tooltip(s, d.term, d.defn);
+          $t.append($e);
+
+          $.each(v, function(i, link) {
+            link.addClass('tt').attr('data-tooltip-content', '#' + s);
+          });
+        }
+      });
+    }
+  }
+
+  if (sizzle.app_data && sizzle.app_data.glossary &&
+      sizzle.app_data.glossary.document) {
+    add_glossary_tooltips();
+  }
+
+
+
+
+  function add_custom_tooltips() {
+    var info_tips = sizzle.app_data.custom_data['info-tips'] || {};
+
+    if ($.isEmptyObject(info_tips)) {
+      return;
+    }
+
+    var tt_options = $.extend({contentAsHTML: true}, default_tt_options);
+
+    $('.tc-info').each(function() {
+      var $elem = $(this).prev();
+      var classes = $elem.attr('class');
+      var m = /\btci-([\S]+)/.exec(classes);
+
+      if (m !== null) {
+        var key = m[1];
+
+        if (key in info_tips) {
+          var v = info_tips[key];
+          var tt = $elem.tooltipster(tt_options).tooltipster('content', v);
+        }
+      }
+    });
+  }
+
+  add_custom_tooltips();
+
+  setTimeout(activate_tooltips, 1000);
+
+
+  // Clipboard copy for code blocks with captions
+
+  $('.code-block-caption').each(function() {
+    var $cap = $(this);
+    var $btn = $('<span class="clip-copy"><span class="copied hidden">Copied!</span><i class="fa fa-clipboard" title="Copy contents"></i></span>');
+    var $code = $cap.parent().find('.highlight');
+
+    $cap.append($btn);
+    $btn.find('.fa-clipboard').data('clip-text', $code.text());
+  });
+
+  var clipboard = new ClipboardJS('.code-block-caption .fa-clipboard', {
+    'text': function(trigger) {
+      return $(trigger).data('clip-text');
+    }
+  });
+
+  clipboard.on('success', function(e) {
+    var $copied = $(e.trigger).prev();
+
+    $copied.removeClass('hidden');
+
+    setTimeout(function() {$copied.addClass('hidden'); }, 1000);
+  });
+
+  if (sizzle.on_load) {
+    sizzle.on_load.forEach(function(f) {
+      f();
+    });
+  }
+});
+</script>
+</body>
+</html>

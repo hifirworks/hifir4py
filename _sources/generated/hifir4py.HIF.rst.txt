@@ -1,0 +1,9 @@
+﻿hifir4py.HIF
+============
+
+.. currentmodule:: hifir4py
+
+.. autoclass:: HIF
+   :members:
+   :special-members:
+   :exclude-members: __weakref__

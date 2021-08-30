@@ -1,0 +1,9 @@
+﻿hifir4py.Pivoting
+=================
+
+.. currentmodule:: hifir4py
+
+.. autoclass:: Pivoting
+   :members:
+   :special-members:
+   :exclude-members: __weakref__

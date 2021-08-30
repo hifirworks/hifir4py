@@ -1,0 +1,6 @@
+﻿hifir4py.ksp.pipit
+==================
+
+.. currentmodule:: hifir4py.ksp
+
+.. autofunction:: pipit
